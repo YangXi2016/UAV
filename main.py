@@ -121,7 +121,7 @@ def Take_off_withpid(goal_height,model=0):
 	    get[1]=goal[1]
 	'''   
 	
-	print "height:",height
+	#print "height:",height
 	if(height>=goal_height or i>45):
 	    break
 	
@@ -130,6 +130,7 @@ def Take_off_withpid(goal_height,model=0):
 	if(model==0):
 	    senser_x=data[0]
 	    senser_y=data[1]
+	    print "position:",senser_x,"   ",senser_y
 	    if(senser_x==0 and senser_y==0):
 		get[2]=goal[2]
 		get[3]=goal[3]
@@ -139,10 +140,11 @@ def Take_off_withpid(goal_height,model=0):
 	elif(model==1):
 	    get[2]=data[6]
 	    get[3]=data[7]
+	    print "speed:",data[6],"   ",data[7]
 	    
 	dt=time.time()-last_time
 	last_time=time.time()
-	print YAW_INIT,'   ',get[1]
+	print "yaw","   ",YAW_INIT,'   ',get[1]
 	for i in range(1,4):
 	    #print(get[i],goal[i])
 	    error[i]=goal[i]-get[i]
@@ -193,6 +195,9 @@ def Fix_Point(signature):
     while(1):
 	[ROL,PIT,YAW,SPEED_Z,ALT_USE,FLY_MODEL,ARMED]=request_user()
 	get[1]=YAW
+	
+	print YAW_INIT,'   ',get[1]
+	
 	if(YAW-goal[1]>180):
 	    get[1]-=360
 	if(YAW-goal[1]<-180):
@@ -521,8 +526,8 @@ def myPlaneFloat(timeout):
 def Fly():
     INIT()
     Take_off_withpid(65)
-    #Fix_Point()
-    rc_data[0:4]=OFFSET[0:4]
+    Fix_Point(0)
+    '''rc_data[0:4]=OFFSET[0:4]
     rc_data[3]=OFFSET[3]+35
     FlyToGoalArea(30,0, 10)
     
@@ -545,7 +550,7 @@ def Fly():
 	    GPIO.output(PIN_CTR,GPIO.LOW)
 	    Fix_Point(2)
 	else:
-	    GPIO.output(PIN_CTR,GPIO.HIGH)
+	    GPIO.output(PIN_CTR,GPIO.HIGH)'''
     #Fix_Point()
 def FlyToGoalArea(speed_x,speed_y,timeout):
     #thr,yaw,tol,pit
@@ -660,9 +665,9 @@ if __name__ == '__main__':
     #Detect_process = mp.Process(target=Offset_Detect, args=(offset_data_queue,))
     #Detect_process.start()
     
-    while(1):
+    '''while(1):
 	data=camera_info()
-	print data
+	print data'''
     '''data=[0,0,0,0,0]
     old_data=camera_info()
     filepath1=time.strftime( '%Y-%m-%d %X', time.localtime() )
