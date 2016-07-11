@@ -49,13 +49,15 @@ kd_pit=0
 
 '''
 #height,rotate,left/right,ahead/back,speed_x,speed_y
+kp_x=0.1
+kp_y=0.1
 kp=[0,0.05,0.01,0.01,0,0]
 ki=[0,0.0001,0,0,0,0]
 kd=[0,0,0,0.00001,0.00001,0]
 '''kp=[0,0.1,1,1,0,0]
 ki=[0,0.03,0,0,0,0]
 kd=[0,0.01,0.01,0.01,0,0]'''
-OFFSET=[1500,1500,1430,1555]#[thr_offset,yaw_offset,rol_offset,pit_offset]
+OFFSET=[1500,1500,1440,1550]#[thr_offset,yaw_offset,rol_offset,pit_offset]
 RANGE=[300,100,100,100]#[thr_range,yaw_range,rol_range,pit_range]
 rc_data[1:4]=OFFSET[1:4]
 
@@ -70,13 +72,14 @@ goal_height=70
 #初始化时从飞控得到的初始状态
 HEIGHT_INIT=None
 YAW_INIT=None
+
 PIN_CTR=29
 
 
 #选择串口
 #SER_COM='COM5'
 SER_COM='/dev/ttyUSB0'
-CAMERA_COM='/dev/ttyUSB1'
+CAMERA_COM='/dev/ttyUSB2'
 #safe_get and saft_put
 def safe_put(queue,data):
     last_time=time.time()

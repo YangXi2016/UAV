@@ -112,11 +112,13 @@ def camera_info():
     if(len(data)!=8):
         print "camera_info error"
     else:
-        for i in range(8):
+        for i in range(6):
             if ord(data[i])==0:
                 result[i]=0
             else:
                 result[i]=ord(data[i])-127
+	result[6]=127-ord(data[6])
+	result[7]=127-ord(data[7])
     #return [line_offset,object_x,object_y,speed_x,speed_y]
     return result
 
