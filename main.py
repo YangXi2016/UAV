@@ -704,9 +704,9 @@ if __name__ == '__main__':
     #Detect_process = mp.Process(target=Offset_Detect, args=(offset_data_queue,))
     #Detect_process.start()
     
-    '''while(1):
+    while(1):
 	data=camera_info()
-	print data'''
+	print data
     '''data=[0,0,0,0,0]
     old_data=camera_info()
     filepath1=time.strftime( '%Y-%m-%d %X', time.localtime() )

@@ -97,6 +97,9 @@ def processImage(hsv, color, frame):
     dy = y - FRAME_HEIGHT/2 
     dx = x - FRAME_WIDTH/2 
     return dx,dy,radius
+
+
+
 #改用Arduino+摄像头模块
 CAMERA_SER=serial.Serial(CAMERA_COM, 115200,timeout=0.2)
 line_offset=0
@@ -120,33 +123,80 @@ def camera_info():
     #return [line_offset,object_x,object_y,speed_x,speed_y]
     return result
 
-def Offset_Detect(offset_data_queue):
-    data=[0,0,0,0,0]
-    old_data=camera_info() 
-    '''filepath1=time.strftime( '%Y-%m-%d %X', time.localtime() )
-    filepath2=filepath1
-    filepath1+='sourcedata.txt'
-    filepath2+='resultdata.txt'''
-    
-    while(1):
-	#file1=open(filepath1,'a')
-	#file2=open(filepath2,'a')
-	new_data=camera_info()
-	for i in range(5):
-	    data[i]=int(0.9*old_data[i]+0.1*new_data[i])
-	    '''file1.write(str(new_data[i])+'  ')
-	    file2.write(str(data[i])+'  ')
-	file1.write('\r\n')
-	file2.write('\r\n')
-	file1.close()
-	file2.close()'''
-	#print data
-	
-	old_data=data
-        safe_put(offset_data_queue, data)
 
-	
-    '''with PiCamera() as camera:
+def Line_Detect(img):
+    output=[0,0]
+    gray = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
+    gray = cv2.GaussianBlur(gray,(3,3),0)
+    ret,thresh=cv2.threshold(gray,0,255,cv2.THRESH_BINARY+cv2.THRESH_OTSU)
+    #thresh = cv2.adaptiveThreshold(gray,255,cv2.ADAPTIVE_THRESH_GAUSSIAN_C,cv2.THRESH_BINARY,9,-10)    
+    
+    #cv2.imshow('threshold', thresh)
+    #cv2.waitKey(0)
+    thresh=cv2.morphologyEx(thresh, cv2.MORPH_OPEN, KERNEL)
+    
+    edges = cv2.Canny(thresh, 40, 150, apertureSize = 3)
+    #cv2.imshow('edges', edges)
+    #cv2.waitKey(1)
+    '''minLineLength = 30
+    maxLineGap = 10
+    lines = cv2.HoughLinesP(edges,1,np.pi/180,15,minLineLength,maxLineGap)'''    
+    lines = cv2.HoughLines(edges,1,np.pi/180,30) #这里对最后一个参数使用了经验型的值
+    
+    if lines==None:
+        return img,[0,0]
+    result = img.copy()
+    #result = np.zeros(img.shape, np.uint8)
+    theta1=[]
+    theta2=[]
+    position_x=[]
+    for line in lines[0]:  
+        rho = line[0] #第一个元素是距离rho  
+        theta= line[1] #第二个元素是角度theta
+        #print rho  
+        #print theta
+        if  (theta < (np.pi/4. )) or (theta > (3.*np.pi/4.0)): #垂直直线
+            if theta==0:
+                continue
+            pt1 = (int(rho/np.cos(theta)),0)  
+            #该直线与最后一行的焦点  
+            pt2 = (int((rho-result.shape[0]*np.sin(theta))/np.cos(theta)),result.shape[0])  
+            #绘制一条白线  
+            cv2.line( result, pt1, pt2, (255))            
+
+            theta1.append(theta)
+            position_x.append(int((2*rho-result.shape[0]*np.sin(theta))/2/np.cos(theta)*255/240))
+        else: #水平直线  
+            pt1 = (0,int(rho/np.sin(theta)))  
+            #该直线与最后一列的交点  
+            pt2 = (result.shape[1], int((rho-result.shape[1]*np.cos(theta))/np.sin(theta)))  
+            #绘制一条直线  
+            cv2.line(result, pt1, pt2, (255), 1)
+
+            theta2.append(theta)
+    #print theta1
+    #print theta2
+    if(len(position_x)==0):
+        output=[0,0]
+        return result,output
+    
+    output[0]=sum(position_x)/len(position_x)
+    
+    if((len(theta1)!=0) and (len(theta2) !=0)):
+        if 1.4<abs(sum(theta1)/len(theta1)-sum(theta2)/len(theta2))<1.75:
+            #print 'Yes'
+            output[1]=1
+               
+
+    cv2.circle(result,(output[0],90),2,255,3)
+    '''cv2.imshow('Result', result)
+    cv2.waitKey(1)'''
+    #cv2.destroyAllWindows()
+    return result,output 
+
+
+def Offset_Detect(offset_data_queue):
+    with PiCamera() as camera:
         #初始化相机 图像大小\采集速率
         #camera = PiCamera()
         camera.resolution = (FRAME_WIDTH, FRAME_HEIGHT)
@@ -158,24 +208,16 @@ def Offset_Detect(offset_data_queue):
 
         preColor = None #光流所用
         # 以BGR格式采集图像
-        for rawFrame in camera.capture_continuous(rawCapture, format="bgr", use_video_port=True):
+        for rawFrame in camera.capture_continuous(rawCapture, format="bgr"):
             frame = rawFrame.array
-            # 颜色空间变换
-            hsv = cv2.cvtColor(frame, cv2.COLOR_BGR2HSV)
 
-            # 图像处理
-            offset_data=processImage(hsv, 1, frame)
+            frame,offset_data=Line_Detect(frame)
             safe_put(offset_data_queue, offset_data)
-            processImage(hsv, 2, frame)
-            processImage(hsv, 3, frame)
-
-    ##      cv2.imshow('mask',mask)
-            cv2.imshow("OffsetDetect", frame)
-            
+            cv2.imshow('frame', frame)
             # q键退出
             key = cv2.waitKey(1) & 0xFF
             rawCapture.truncate(0)
             if key == ord("q"):
                 break
 
-        cv2.destroyAllWindows()'''
+        cv2.destroyAllWindows()
