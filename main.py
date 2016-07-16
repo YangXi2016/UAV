@@ -1,6 +1,7 @@
 # -*- coding: utf-8 -*
 from define import *
 import RPi.GPIO as GPIO
+import signal
 #from Flight_Control import Serial_Monitor,unlock,lock,baroheight,ultraheight,unheight,send_rcdata,request
 from Flight_Control import *
 import cv2    
@@ -169,12 +170,17 @@ def Take_off_withpid(goal_height,model=0):
 	'''if(senser_x==0 and senser_y==0):
 	    rc_data[2]=OFFSET[2]
 	    rc_data[3]=OFFSET[3]'''
-	rc_data[0]=1660
 	
+	rc_data[0]=1580
 	send_rcdata(rc_data)
 
-	
 
+
+
+
+
+    rc_data[0:4]=OFFSET[0:4]
+    send_rcdata(rc_data)
 def Fix_Point(signature):
     #thr,yaw,tol,pit
     previous_error=[0,0,0,0]
@@ -525,8 +531,9 @@ def myPlaneFloat(timeout):
 
 def Fly():
     INIT()
-    Take_off_withpid(65)
-    Fix_Point(0)
+    Take_off_withpid(100,1)
+    FlyToGoalArea(0,0,150)
+    #Fix_Point(0)
     '''rc_data[0:4]=OFFSET[0:4]
     rc_data[3]=OFFSET[3]+35
     FlyToGoalArea(30,0, 10)
@@ -654,6 +661,13 @@ def Key_function(event):
     except:
 	pass
 
+def sigint_handler(signum, frame):
+    global is_sigint_up
+    is_sigint_up = True
+    print 'catched interrupt signal!'
+
+signal.signal(signal.SIGINT, sigint_handler)
+is_sigint_up = False
 if __name__ == '__main__':
     print time.strftime( '%Y-%m-%d %X', time.localtime() )
     mp.freeze_support()
@@ -665,6 +679,44 @@ if __name__ == '__main__':
     #Detect_process = mp.Process(target=Offset_Detect, args=(offset_data_queue,))
     #Detect_process.start()
     
+    
+    cmd=raw_input("enter 't' to take off:")
+    if cmd=='t':
+	Fly_process.start()
+    while(1):
+	try:
+	    if is_sigint_up==True:
+		print 'My KeyboardInterrupt'
+		try:
+		    #Camera_process.terminate()
+		    Fly_process.terminate()
+		
+		
+		except Exception, exc:
+		    print Exception, ":", exc
+		    print("terminate error")
+		PlaneLand()
+		time.sleep(0.05)
+		lock()
+		time.sleep(0.05)
+		lock()	    
+		lock()
+		time.sleep(0.05)
+		lock()
+		time.sleep(0.05)	    
+		lock()
+		time.sleep(0.05)	
+		
+		try:
+		    Serial_process.terminate()
+		    #Detect_process.terminate()
+		except Exception, exc:
+		    print Exception, ":", exc
+		GPIO.output(PIN_CTR,GPIO.LOW)
+		break
+	except Exception, exc:
+	    print Exception, ":", exc
+
     '''while(1):
 	data=camera_info()
 	print data'''
@@ -690,6 +742,6 @@ if __name__ == '__main__':
 	print data[0],' ',data[3],' ',data[4]
 	old_data=data'''
     
-    master.bind("<Key>", Key_function)
-    mainloop()
+    #master.bind("<Key>", Key_function)
+    #mainloop()
 
