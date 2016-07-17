@@ -63,13 +63,13 @@ kp_y=1
 '''kp=[0,0,0,0,0,0]
 ki=[0,0,0,0,0,0]
 kd=[0,0,0,0,0,0]'''
-kp=[0,0.04,  0.15,0.08,0,0]
-ki=[0,0,0,   0,   0,0]
-kd=[0,0     ,0,   0.00001,0.00001,0]
+kp=[0,0, 0.5,  -0.5,0,0]
+ki=[0,0, 0.01,   0.01,   0,0]
+kd=[0,0, 0,   0.00001,0.00001,0]
 '''kp=[0,0.1,1,1,0,0]
 ki=[0,0.03,0,0,0,0]
 kd=[0,0.01,0.01,0.01,0,0]'''
-OFFSET=[1500,1500,1440,1580]#[thr_offset,yaw_offset,rol_offset,pit_offset]
+OFFSET=[1500,1500,1460,1520]#[thr_offset,yaw_offset,rol_offset,pit_offset]
 RANGE=[300,100,100,100]#[thr_range,yaw_range,rol_range,pit_range]
 rc_data[1:4]=OFFSET[1:4]
 
@@ -84,6 +84,9 @@ goal_height=70
 #初始化时从飞控得到的初始状态
 HEIGHT_INIT=None
 YAW_INIT=None
+SPEED_X_INIT=0
+SPEED_Y_INIT=0
+
 
 PIN_CTR=29
 
@@ -91,7 +94,7 @@ PIN_CTR=29
 #选择串口
 #SER_COM='COM5'
 SER_COM='/dev/ttyUSB0'
-CAMERA_COM='/dev/ttyUSB1'
+CAMERA_COM='/dev/ttyACM0'
 #safe_get and saft_put
 def safe_put(queue,data):
     last_time=time.time()
@@ -132,3 +135,7 @@ listbox = Listbox(master, yscrollcommand=scrollbar.set)
 listbox.pack(side=LEFT, fill=BOTH)
 
 scrollbar.config(command=listbox.yview)'''
+
+filename=time.strftime( '%Y-%m-%d %X', time.localtime() )
+filename+='.txt'
+filehanher=open(filename, mode='a')

@@ -7,12 +7,27 @@ from Flight_Control import *
 import cv2    
 from CameraDetect import *
 def INIT():
-    global YAW_INIT
+    global YAW_INIT,SPEED_X_INIT,SPEED_Y_INIT
     yaw_sum=0
     for i in range(5):
 	yaw_sum+=request_user(2)
     YAW_INIT=yaw_sum/5
     
+    speed_x_sum=0
+    speed_y_sum=0
+    time_sum=0
+    for i in range (50):
+	data=camera_info()
+	if data!=0:
+	    speed_x_sum+=data[6]
+	    speed_y_sum+=data[7]
+	    time_sum+=1
+	
+    SPEED_X_INIT=speed_x_sum/time_sum
+    SPEED_Y_INIT=speed_y_sum/time_sum
+    
+    print 'speed x init:',SPEED_X_INIT
+    print 'speed y init:',SPEED_Y_INIT
     # BOARD编号方式，基于插座引脚编号  
     GPIO.setmode(GPIO.BOARD)  
     # 输出模式  
@@ -67,7 +82,9 @@ def Take_off_stable():
 def Take_off_withpid(goal_height,model=0):
     #thr,yaw,tol,pit
     previous_error=[0,0,0,0]
+    previous_error2=[0,0,0,0]
     error=[0,0,0,0]
+    proportion=[0,0,0,0]
     integral=[0,0,0,0]
     derivative=[0,0,0,0]
     output=[0,0,0,0]
@@ -123,7 +140,7 @@ def Take_off_withpid(goal_height,model=0):
 	'''   
 	
 	#print "height:",height
-	if(height>=goal_height or i>45):
+	if(180>=height>=goal_height or i>55):
 	    break
 	
 	#data=safe_get(offset_data_queue)
@@ -144,22 +161,24 @@ def Take_off_withpid(goal_height,model=0):
 	    print "speed:",data[6],"   ",data[7]
 	    
 	dt=time.time()-last_time
+	print 'dt:',dt
 	last_time=time.time()
 	print "yaw","   ",YAW_INIT,'   ',get[1]
 	for i in range(1,4):
 	    #print(get[i],goal[i])
 	    error[i]=goal[i]-get[i]
-	    integral[i]+=error[i]*dt
-	    derivative[i]=(error[i]-previous_error[i])/dt
-	    output[i]=kp[i]* error[i]+ki[i]* integral[i]+kd[i]* derivative[i]
-	    rc_data[i]+=output[i]*(0.55+0.45*output[i]/RANGE[i])
-	    #rc_data[i]+=output[i]
+	    proportion[i]=error[i]-previous_error[i]
+	    integral[i]=error[i]*dt
+	    derivative[i]=(error[i]-2*previous_error[i]+previous_error2[i])/dt
+	    output[i]=kp[i]*proportion[i] + ki[i]* integral[i] +kd[i]*derivative[i]
+	
+	    previous_error2[i]=previous_error[i]
+	    previous_error[i]=error[i]
+	
+	    rc_data[i]+=output[i]
+	    #rc_data[i]+=output[i]*(0.55+0.45*output[i]/RANGE[i])
 	    #rc_data[i]=OFFSET[i]+output[i]
-	    print(kp[i]* error[i],ki[i]* integral[i],kd[i]* derivative[i])
-	    
-	'''if((radius<min_radius) or (radius>max_radius)):
-	    rc_data[2]=OFFSET[2]
-	    rc_data[3]=OFFSET[3]'''
+	    print(kp[i]* proportion[i],ki[i]* integral[i],kd[i]* derivative[i])
 		
 	for i in range (1,4):
 	    if rc_data[i]>OFFSET[i]+RANGE[i]:
@@ -171,15 +190,16 @@ def Take_off_withpid(goal_height,model=0):
 	    rc_data[2]=OFFSET[2]
 	    rc_data[3]=OFFSET[3]'''
 	
-	rc_data[0]=1580
+	rc_data[0]=1600
 	send_rcdata(rc_data)
+	
+	filehanher.write(str(get[2])+"   "+str(rc_data[2])+"   "+str(get[3])+"   "+str(rc_data[3])+"\r\n")
 
 
 
 
 
-
-    rc_data[0:4]=OFFSET[0:4]
+    rc_data[0]=OFFSET[0]
     send_rcdata(rc_data)
 def Fix_Point(signature):
     #thr,yaw,tol,pit
@@ -196,8 +216,6 @@ def Fix_Point(signature):
     
     goal[1]=YAW_INIT
     last_time=time.time()
-    #filepath=time.strftime( '%Y-%m-%d %X', time.localtime())
-    #filehanher=open(filepath, mode='a')
     while(1):
 	[ROL,PIT,YAW,SPEED_Z,ALT_USE,FLY_MODEL,ARMED]=request_user()
 	get[1]=YAW
@@ -347,8 +365,8 @@ def PlaneLand():
     rc_data[3]=1500 #PIT
     
     
-    send_rcdata(rc_data)
-    time.sleep(0.2)
+    #send_rcdata(rc_data)
+    #time.sleep(0.1)
     while (rc_data[0]>1100):
 	
 	send_rcdata(rc_data)
@@ -531,7 +549,7 @@ def myPlaneFloat(timeout):
 
 def Fly():
     INIT()
-    Take_off_withpid(100,1)
+    Take_off_withpid(120,1)
     FlyToGoalArea(0,0,150)
     #Fix_Point(0)
     '''rc_data[0:4]=OFFSET[0:4]
@@ -562,7 +580,9 @@ def Fly():
 def FlyToGoalArea(speed_x,speed_y,timeout):
     #thr,yaw,tol,pit
     previous_error=[0,0,0,0]
+    previous_error2=[0,0,0,0]
     error=[0,0,0,0]
+    proportion=[0,0,0,0]
     integral=[0,0,0,0]
     derivative=[0,0,0,0]
     output=[0,0,0,0]
@@ -592,19 +612,25 @@ def FlyToGoalArea(speed_x,speed_y,timeout):
 	get[3]=data[7]
 		
 	dt=time.time()-last_time
+	print 'dt:',dt
 	last_time=time.time()
 	print "yaw:",YAW_INIT,'   ',YAW
 	print "speed:",get[2],'   ',get[3]
 	for i in range(1,4):
 	    #print(get[i],goal[i])
 	    error[i]=goal[i]-get[i]
-	    integral[i]+=error[i]*dt
-	    derivative[i]=(error[i]-previous_error[i])/dt
-	    output[i]=kp[i]* error[i]+ki[i]* integral[i]+kd[i]* derivative[i]
-	    #rc_data[i]+=output[i]
-	    rc_data[i]+=output[i]*(0.55+0.45*output[i]/RANGE[i])
+	    proportion[i]=error[i]-previous_error[i]
+	    integral[i]=error[i]*dt
+	    derivative[i]=(error[i]-2*previous_error[i]+previous_error2[i])/dt
+	    output[i]=kp[i]*proportion[i] + ki[i]* integral[i] +kd[i]*derivative[i]
+	    
+	    previous_error2[i]=previous_error[i]
+	    previous_error[i]=error[i]
+	    
+	    rc_data[i]+=output[i]
+	    #rc_data[i]+=output[i]*(0.55+0.45*output[i]/RANGE[i])
 	    #rc_data[i]=OFFSET[i]+output[i]
-	    print(kp[i]* error[i],ki[i]* integral[i],kd[i]* derivative[i])
+	    print(kp[i]* proportion[i],ki[i]* integral[i],kd[i]* derivative[i])
 	    
 	for i in range (1,4):
 	    if rc_data[i]>OFFSET[i]+RANGE[i]:
@@ -613,6 +639,7 @@ def FlyToGoalArea(speed_x,speed_y,timeout):
 		rc_data[i] = OFFSET[i]-RANGE[i]		
 	send_rcdata(rc_data)	
 	time.sleep(0.1)
+	filehanher.write(str(get[2])+"   "+str(rc_data[2])+"   "+str(get[3])+"   "+str(rc_data[3])+"\r\n")
 	print "KeepFly"
 
   
@@ -668,6 +695,12 @@ def sigint_handler(signum, frame):
 
 signal.signal(signal.SIGINT, sigint_handler)
 is_sigint_up = False
+
+def teset_senser():
+    while(1):
+	data=camera_info()
+	print data
+
 if __name__ == '__main__':
     print time.strftime( '%Y-%m-%d %X', time.localtime() )
     mp.freeze_support()
@@ -683,6 +716,15 @@ if __name__ == '__main__':
     cmd=raw_input("enter 't' to take off:")
     if cmd=='t':
 	Fly_process.start()
+        
+    '''times=200
+    begin_time=time.time()
+    while(times>0):
+	data=camera_info()
+	print data
+	times-=1
+    print (time.time()-begin_time)'''
+    
     while(1):
 	try:
 	    if is_sigint_up==True:
@@ -717,9 +759,6 @@ if __name__ == '__main__':
 	except Exception, exc:
 	    print Exception, ":", exc
 
-    '''while(1):
-	data=camera_info()
-	print data'''
     '''data=[0,0,0,0,0]
     old_data=camera_info()
     filepath1=time.strftime( '%Y-%m-%d %X', time.localtime() )

@@ -105,6 +105,7 @@ speed_y=0
 object_x=0
 object_y=0
 def camera_info():
+    global SPEED_X_INIT,SPEED_Y_INIT
     CAMERA_SER.flushInput()
     CAMERA_SER.write('i')
     data=CAMERA_SER.read(8)
@@ -117,8 +118,8 @@ def camera_info():
                 result[i]=0
             else:
                 result[i]=ord(data[i])-127
-	result[6]=127-ord(data[6])
-	result[7]=127-ord(data[7])
+	result[6]=127-ord(data[6])-SPEED_X_INIT
+	result[7]=127-ord(data[7])-SPEED_Y_INIT
     #return [line_offset,object_x,object_y,speed_x,speed_y]
     return result
 
