@@ -370,7 +370,7 @@ def PlaneLand():
     while (rc_data[0]>1100):
 	
 	send_rcdata(rc_data)
-	rc_data[0]-=200
+	rc_data[0]-=100
 	time.sleep(0.8)
     
     '''
@@ -548,9 +548,9 @@ def myPlaneFloat(timeout):
     
 
 def Fly():
-    INIT()
-    Take_off_withpid(120,1)
-    FlyToGoalArea(0,0,150)
+    #INIT()
+    Take_off_withpid(90,1)
+    FlyToGoalArea(7,0,150)
     #Fix_Point(0)
     '''rc_data[0:4]=OFFSET[0:4]
     rc_data[3]=OFFSET[3]+35
@@ -607,7 +607,7 @@ def FlyToGoalArea(speed_x,speed_y,timeout):
 	if(YAW-goal[1]<-180):
 	    get[1]+=360	
 	    
-	data=camera_info()
+	#data=camera_info()
 	get[2]=data[6]
 	get[3]=data[7]
 		
@@ -638,7 +638,7 @@ def FlyToGoalArea(speed_x,speed_y,timeout):
 	    if rc_data[i]<OFFSET[i]-RANGE[i]:
 		rc_data[i] = OFFSET[i]-RANGE[i]		
 	send_rcdata(rc_data)	
-	time.sleep(0.1)
+	#time.sleep(0.1)
 	filehanher.write(str(get[2])+"   "+str(rc_data[2])+"   "+str(get[3])+"   "+str(rc_data[3])+"\r\n")
 	print "KeepFly"
 
@@ -696,10 +696,14 @@ def sigint_handler(signum, frame):
 signal.signal(signal.SIGINT, sigint_handler)
 is_sigint_up = False
 
-def teset_senser():
+def test_senser():
+    last_time=time.time()
     while(1):
 	data=camera_info()
+	dt=time.time()-last_time
+	print dt
 	print data
+	last_time=time.time()
 
 if __name__ == '__main__':
     print time.strftime( '%Y-%m-%d %X', time.localtime() )

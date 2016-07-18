@@ -63,13 +63,13 @@ kp_y=1
 '''kp=[0,0,0,0,0,0]
 ki=[0,0,0,0,0,0]
 kd=[0,0,0,0,0,0]'''
-kp=[0,0, 0.5,  -0.5,0,0]
-ki=[0,0, 0.01,   0.01,   0,0]
-kd=[0,0, 0,   0.00001,0.00001,0]
+kp=[0,0, 1.75  ,  -2.8,    0,0]
+ki=[0,0, 0.2,  -0.2,   0,0]
+kd=[0,0, 0.015, -0.01,   0,0]
 '''kp=[0,0.1,1,1,0,0]
 ki=[0,0.03,0,0,0,0]
 kd=[0,0.01,0.01,0.01,0,0]'''
-OFFSET=[1500,1500,1460,1520]#[thr_offset,yaw_offset,rol_offset,pit_offset]
+OFFSET=[1500,1500,1450,1560]#[thr_offset,yaw_offset,rol_offset,pit_offset]
 RANGE=[300,100,100,100]#[thr_range,yaw_range,rol_range,pit_range]
 rc_data[1:4]=OFFSET[1:4]
 
