@@ -118,8 +118,8 @@ def camera_info():
                 result[i]=0
             else:
                 result[i]=ord(data[i])-127
-	result[6]=127-ord(data[6])-SPEED_X_INIT
-	result[7]=127-ord(data[7])-SPEED_Y_INIT
+	result[6]=127-ord(data[6])#-SPEED_X_INIT
+	result[7]=127-ord(data[7])#-SPEED_Y_INIT
     #return [line_offset,object_x,object_y,speed_x,speed_y]
     return result
 

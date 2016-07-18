@@ -58,12 +58,12 @@ kd_pit=0
 #光流法下：#摄像头向后运动，y值为正；摄像头向右运动，x值为正。
 
 #height,rotate,left/right,ahead/back,speed_x,speed_y
-kp_x=1
-kp_y=1
+kp_x=0.02
+kp_y=0.016
 '''kp=[0,0,0,0,0,0]
 ki=[0,0,0,0,0,0]
 kd=[0,0,0,0,0,0]'''
-kp=[0,0, 1.75  ,  -2.8,    0,0]
+kp=[0,0, 3  ,  -4,    0,0]
 ki=[0,0, 0.2,  -0.2,   0,0]
 kd=[0,0, 0.015, -0.01,   0,0]
 '''kp=[0,0.1,1,1,0,0]
@@ -84,9 +84,9 @@ goal_height=70
 #初始化时从飞控得到的初始状态
 HEIGHT_INIT=None
 YAW_INIT=None
-SPEED_X_INIT=0
-SPEED_Y_INIT=0
-
+#SPEED_X_INIT=0
+#SPEED_Y_INIT=0
+SPEED_LIMIT=12
 
 PIN_CTR=29
 
@@ -94,7 +94,7 @@ PIN_CTR=29
 #选择串口
 #SER_COM='COM5'
 SER_COM='/dev/ttyUSB0'
-CAMERA_COM='/dev/ttyACM0'
+CAMERA_COM='/dev/ttyACM1'
 #safe_get and saft_put
 def safe_put(queue,data):
     last_time=time.time()

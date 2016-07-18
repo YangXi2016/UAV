@@ -7,13 +7,13 @@ from Flight_Control import *
 import cv2    
 from CameraDetect import *
 def INIT():
-    global YAW_INIT,SPEED_X_INIT,SPEED_Y_INIT
+    global YAW_INIT#,SPEED_X_INIT,SPEED_Y_INIT
     yaw_sum=0
     for i in range(5):
 	yaw_sum+=request_user(2)
     YAW_INIT=yaw_sum/5
     
-    speed_x_sum=0
+    '''speed_x_sum=0
     speed_y_sum=0
     time_sum=0
     for i in range (50):
@@ -27,7 +27,7 @@ def INIT():
     SPEED_Y_INIT=speed_y_sum/time_sum
     
     print 'speed x init:',SPEED_X_INIT
-    print 'speed y init:',SPEED_Y_INIT
+    print 'speed y init:',SPEED_Y_INIT'''
     # BOARD编号方式，基于插座引脚编号  
     GPIO.setmode(GPIO.BOARD)  
     # 输出模式  
@@ -150,15 +150,21 @@ def Take_off_withpid(goal_height,model=0):
 	    senser_y=data[1]
 	    print "position:",senser_x,"   ",senser_y
 	    if(senser_x==0 and senser_y==0):
-		get[2]=goal[2]
-		get[3]=goal[3]
+		#get[2]=goal[2]
+		#get[3]=goal[3]
+		pass
 	    else:
-		get[2]=senser_x
-		get[3]=senser_y
-	elif(model==1):
-	    get[2]=data[6]
-	    get[3]=data[7]
-	    print "speed:",data[6],"   ",data[7]
+		goal[2]=kp_x*senser_x*height/100
+		goal[3]=kp_y*senser_y*height/100
+		if(goal[2]>SPEED_LIMIT):
+		    goal[2]=SPEED_LIMIT
+		if(goal[3]>SPEED_LIMIT):
+		    goal[3]=SPEED_LIMIT
+		
+	    print "position offset:",goal[2],"   ",goal[3]
+	get[2]=data[6]
+	get[3]=data[7]
+	print "speed:",data[6],"   ",data[7]
 	    
 	dt=time.time()-last_time
 	print 'dt:',dt
@@ -190,7 +196,7 @@ def Take_off_withpid(goal_height,model=0):
 	    rc_data[2]=OFFSET[2]
 	    rc_data[3]=OFFSET[3]'''
 	
-	rc_data[0]=1600
+	rc_data[0]=1640
 	send_rcdata(rc_data)
 	
 	filehanher.write(str(get[2])+"   "+str(rc_data[2])+"   "+str(get[3])+"   "+str(rc_data[3])+"\r\n")
@@ -217,7 +223,7 @@ def Fix_Point(signature):
     goal[1]=YAW_INIT
     last_time=time.time()
     while(1):
-	[ROL,PIT,YAW,SPEED_Z,ALT_USE,FLY_MODEL,ARMED]=request_user()
+	[ROL,PIT,YAW,SPEED_Z,height,FLY_MODEL,ARMED]=request_user()
 	get[1]=YAW
 	
 	print YAW_INIT,'   ',get[1]
@@ -238,19 +244,27 @@ def Fix_Point(signature):
 	else:
 	    senser_x=data[4]
 	    senser_y=data[5]
-	    
+	
 	if(senser_x==0 and senser_y==0):
 	    #get[2]=goal[2]
 	    #get[3]=goal[3]
-	    print "lost object",signature
-	    break
+	    #print "lost object",signature
+	    #break
+	    pass
 	else:
-	    get[2]=senser_x*kp_x+data[6]
-	    get[3]=senser_y*kp_y+data[7]
+	    goal[2]=kp_x*senser_x*height/100
+	    goal[3]=kp_y*senser_y*height/100	
+	    if(goal[2]>SPEED_LIMIT):
+		goal[2]=SPEED_LIMIT
+	    if(goal[3]>SPEED_LIMIT):
+		goal[3]=SPEED_LIMIT	    
+	
+	get[2]=data[6]
+	get[3]=data[7]
 		
 	dt=time.time()-last_time
 	last_time=time.time()
-	print "position factor",senser_x*kp_x,'   ',senser_y*kp_y
+	print "position offset:",goal[2],"   ",goal[3]
 	print "speed",data[6],'   ',data[7]
 	for i in range(1,4):
 	    #print(get[i],goal[i])
@@ -550,7 +564,7 @@ def myPlaneFloat(timeout):
 def Fly():
     #INIT()
     Take_off_withpid(90,1)
-    FlyToGoalArea(7,0,150)
+    FlyToGoalArea(0,0,150)
     #Fix_Point(0)
     '''rc_data[0:4]=OFFSET[0:4]
     rc_data[3]=OFFSET[3]+35
