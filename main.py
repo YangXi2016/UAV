@@ -33,6 +33,9 @@ def INIT():
     # 输出模式  
     GPIO.setup(PIN_CTR, GPIO.OUT) 
     GPIO.output(PIN_CTR,GPIO.HIGH)
+    
+    GPIO.setup(PIN_ERR, GPIO.OUT) 
+    GPIO.output(PIN_ERR,GPIO.LOW)    
 def Take_off_stable():
     global YAW_INIT
     YAW_INIT=request_user(0)
@@ -600,9 +603,9 @@ def FlyToGoalArea(speed_x,speed_y,timeout):
     integral=[0,0,0,0]
     derivative=[0,0,0,0]
     output=[0,0,0,0]
-    goal=[YAW_INIT,0,speed_x,speed_y]
+    goal=[0,YAW_INIT,speed_x,speed_y]
     get=[0,0,0,0]
-    
+    get[1]=YAW_INIT
     begin_time=time.time()
     last_time=time.time()
     while True:
@@ -614,12 +617,12 @@ def FlyToGoalArea(speed_x,speed_y,timeout):
 	    if(data[i]!=0):
 		return
 	
-	[ROL,PIT,YAW,SPEED_Z,ALT_USE,FLY_MODEL,ARMED]=request_user()
+	'''[ROL,PIT,YAW,SPEED_Z,ALT_USE,FLY_MODEL,ARMED]=request_user()
 	get[1]=YAW
 	if(YAW-goal[1]>180):
 	    get[1]-=360
 	if(YAW-goal[1]<-180):
-	    get[1]+=360	
+	    get[1]+=360	'''
 	    
 	#data=camera_info()
 	get[2]=data[6]
@@ -628,7 +631,7 @@ def FlyToGoalArea(speed_x,speed_y,timeout):
 	dt=time.time()-last_time
 	print 'dt:',dt
 	last_time=time.time()
-	print "yaw:",YAW_INIT,'   ',YAW
+	#print "yaw:",YAW_INIT,'   ',YAW
 	print "speed:",get[2],'   ',get[3]
 	for i in range(1,4):
 	    #print(get[i],goal[i])
@@ -773,6 +776,8 @@ if __name__ == '__main__':
 		except Exception, exc:
 		    print Exception, ":", exc
 		GPIO.output(PIN_CTR,GPIO.LOW)
+		time.sleep(2)
+		GPIO.output(PIN_ERR,GPIO.LOW)
 		break
 	except Exception, exc:
 	    print Exception, ":", exc

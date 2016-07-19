@@ -8,7 +8,7 @@ import serial
 import math
 import copy
 from define import *
-
+import RPi.GPIO as GPIO
 
 # 图像大小
 FRAME_WIDTH = 160#120
@@ -98,21 +98,23 @@ def processImage(hsv, color, frame):
     dx = x - FRAME_WIDTH/2 
     return dx,dy,radius
 #改用Arduino+摄像头模块
-CAMERA_SER=serial.Serial(CAMERA_COM, 115200,timeout=0.2)
+CAMERA_SER=serial.Serial(CAMERA_COM, 115200,timeout=0.4)
 line_offset=0
 speed_x=0
 speed_y=0
 object_x=0
 object_y=0
 def camera_info():
-    global SPEED_X_INIT,SPEED_Y_INIT
+    #global SPEED_X_INIT,SPEED_Y_INIT
     CAMERA_SER.flushInput()
     CAMERA_SER.write('i')
     data=CAMERA_SER.read(8)
     result=[0,0,0,0,0,0,0,0]
     if(len(data)!=8):
         print "camera_info error"
+	GPIO.output(PIN_ERR,GPIO.HIGH)
     else:
+	GPIO.output(PIN_ERR,GPIO.LOW)
         for i in range(6):
             if ord(data[i])==0:
                 result[i]=0
