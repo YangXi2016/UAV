@@ -8,10 +8,14 @@ import cv2
 from CameraDetect import *
 def INIT():
     global YAW_INIT#,SPEED_X_INIT,SPEED_Y_INIT
+    #print data_array
+    #print data_array[:]
+    time.sleep(1)
     yaw_sum=0
-    for i in range(5):
+    for i in range(10):
 	yaw_sum+=request_user(2)
-    YAW_INIT=yaw_sum/5
+	time.sleep(0.05)
+    YAW_INIT=yaw_sum/10
     
     '''speed_x_sum=0
     speed_y_sum=0
@@ -723,11 +727,16 @@ def test_senser():
 	last_time=time.time()
 
 if __name__ == '__main__':
+    global senser_array,data_array,out_array
     print time.strftime( '%Y-%m-%d %X', time.localtime() )
     mp.freeze_support()
     print("Create new process as reader!")                   
-    Serial_process = mp.Process(target=Serial_Monitor, args=(senser_queue,data_queue,out_queue))
-    Serial_process.start() 
+    Serial_process = mp.Process(target=Serial_Monitor, args=(senser_array,data_array,out_array))
+    Serial_process.start()
+    #print data_array
+    #print data_array[:]
+    #print out_array
+    #print out_array[:]
     INIT()
     Fly_process = mp.Process(target=Fly, args=())
     #Detect_process = mp.Process(target=Offset_Detect, args=(offset_data_queue,))
@@ -754,7 +763,6 @@ if __name__ == '__main__':
 		    #Camera_process.terminate()
 		    Fly_process.terminate()
 		
-		
 		except Exception, exc:
 		    print Exception, ":", exc
 		    print("terminate error")
@@ -774,13 +782,13 @@ if __name__ == '__main__':
 		    Serial_process.terminate()
 		    #Detect_process.terminate()
 		except Exception, exc:
-		    print Exception, ":", exc
+		    print "err1:",Exception, ":", exc
 		GPIO.output(PIN_CTR,GPIO.LOW)
 		time.sleep(2)
 		GPIO.output(PIN_ERR,GPIO.LOW)
 		break
 	except Exception, exc:
-	    print Exception, ":", exc
+	    print "err2:",Exception, ":", exc
 
     '''data=[0,0,0,0,0]
     old_data=camera_info()

@@ -5,15 +5,16 @@ from Flight_Serial import Serial_Monitor,assembly_cmd
 import numpy as np
 
 # Read msg from the queue and print it out
-def Wait_Check(data_queue,fream_head,check_sum):
+def Wait_Check():
     return 1
 
 
-def Wait_Data(data_queue,data_type):
+def Wait_Data(data_array,data_type):
+    #global data_array
     last_time=time.time()
     while(time.time()-last_time<1):
         #if(data_queue.empty()==False):       
-        frame=safe_get(data_queue)
+        frame=data_array[:]
         #print frame
         if(frame==0):
             continue
@@ -25,10 +26,12 @@ def Wait_Data(data_queue,data_type):
 
 
 def unlock():
+    global out_array
     while(1):
         cmd,Sum= assembly_cmd(HEAD_SEND, COMMAND, cmd_unlock)
         #out_queue.put(cmd)
-        safe_put(out_queue, cmd)
+        #safe_put(out_queue, cmd)
+        out_array[:len(cmd)]=map(ord,cmd)
         #print cmd
         state =1# request_user(6)
         #print state
@@ -38,21 +41,23 @@ def unlock():
 
     
 def lock():
+    global out_array
     print("上锁")
     while(1):
         cmd,Sum= assembly_cmd(HEAD_SEND, COMMAND, cmd_lock)
         #out_queue.put(cmd)
-        safe_put(out_queue,cmd)
+        out_array[:len(cmd)]=map(ord,cmd)
         state =1# request_user(6)
         if state ==1:
             print state
             return state
 
 def baroheight():
+    global out_array
     while(1):
         cmd,Sum= assembly_cmd(HEAD_SEND, COMMAND, cmd_baroheight_mode)
         #out_queue.put(cmd)
-        safe_put(out_queue,cmd)
+        out_array[:len(cmd)]=map(ord,cmd)
         state = Wait_Check(data_queue, COMMAND, Sum)
         if state ==1:
             height_mode=1
@@ -60,10 +65,11 @@ def baroheight():
             return state
 
 def ultraheight():
+    global out_array
     while(1):
         cmd,Sum= assembly_cmd(HEAD_SEND, COMMAND, cmd_ultraheight_mode)
         #out_queue.put(cmd)
-        safe_put(out_queue,cmd)
+        out_array[:len(cmd)]=map(ord,cmd)
         state =1# Wait_Check(data_queue, COMMAND, Sum)
         if state ==1:
             height_mode=2
@@ -71,24 +77,33 @@ def ultraheight():
             return state
 
 def unheight():
+    global out_array
     while(1):
         cmd,Sum= assembly_cmd(HEAD_SEND, COMMAND, cmd_unheight_mode)
         #out_queue.put(cmd)
-        safe_put(out_queue,cmd)
+        out_array[:len(cmd)]=map(ord,cmd)
         state = Wait_Check(data_queue, COMMAND, Sum)
         if state ==1:
             height_mode=0
             print state
             return state
 def send_rcdata(rc_data):
+    #global out_array
     #print time.clock()
     rc_data=map(int,rc_data)
     print rc_data[0:4]
+    #print out_array
+    #print out_array[:]
     #listbox.insert(0, "rc_data")
     while(1):
         cmd,Sum= assembly_cmd(HEAD_SEND, RCDATA, rc_data)
         #out_queue.put(cmd)
-        safe_put(out_queue,cmd)
+        #print cmd
+        out_array[:len(cmd)]=map(ord,cmd)
+        '''print out_array
+        for i in range(len(cmd)):
+            print out_array[i]'''        
+        #print out_array[:len(cmd)]
         state =1# Wait_Check(data_queue, RCDATA, Sum)
         if state ==1:
             print state
@@ -96,9 +111,10 @@ def send_rcdata(rc_data):
         
 
 def request_user(id=None):
-    data=safe_get(data_queue)
+    global data_array
+    data=data_array[:]
     #data=request(1)
-    #print data
+    print data
     if data==0:
         return 0
     ROL=np.int16(((data[0]<<8)+data[1]))/100.0

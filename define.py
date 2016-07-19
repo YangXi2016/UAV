@@ -75,10 +75,16 @@ rc_data[1:4]=OFFSET[1:4]
 
 
 #数据交换通道
-senser_queue = mp.Queue(1)   #senser_data传输的通道（数据从Serial_Monitor传出来）
-data_queue = mp.Queue(1)    #status_data传输的通道（数据从Serial_Monitor传出来）
-out_queue = mp.Queue(1)     #request_cmd传输的通道（数据传到Serial_Monitor）
-offset_data_queue=mp.Queue(1)   #request_data传输的通道（数据从Serial_Monitor传出来）
+#senser_queue = mp.Queue(1)   #senser_data传输的通道（数据从Serial_Monitor传出来）
+#data_queue = mp.Queue(1)    #status_data传输的通道（数据从Serial_Monitor传出来）
+#out_queue = mp.Queue(1)     #request_cmd传输的通道（数据传到Serial_Monitor）
+#offset_data_queue=mp.Queue(1)   #request_data传输的通道（数据从Serial_Monitor传出来）
+senser_array=mp.Array('B', [0 for i in range(12)])
+data_array=mp.Array('B', [0 for i in range(14)])
+out_array =mp.Array('B', [0 for i in range(30)])
+offset_array=mp.Array('i',[0 for i in range(8)])
+#print data_array
+#print out_array
 
 goal_height=70
 #初始化时从飞控得到的初始状态
@@ -97,7 +103,8 @@ PIN_ERR=31
 SER_COM='/dev/ttyUSB0'
 CAMERA_COM='/dev/ttyACM0'
 #safe_get and saft_put
-def safe_put(queue,data):
+
+'''def safe_put(queue,data):
     last_time=time.time()
     while(time.time()-last_time<1):
         try:
@@ -120,7 +127,7 @@ def safe_get(queue):
                 #print("safe_get error")
         time.sleep(0.05)
     return 0
-
+'''
 
 #GUI var
 '''master = Tk()
