@@ -94,6 +94,7 @@ def Take_off_withpid(goal_height,model=0):
     proportion=[0,0,0,0]
     integral=[0,0,0,0]
     derivative=[0,0,0,0]
+    old_derivative=[0,0,0,0]
     output=[0,0,0,0]
     goal=[0,0,0,0]
     get=[0,0,0,0]   
@@ -183,6 +184,10 @@ def Take_off_withpid(goal_height,model=0):
 	    proportion[i]=error[i]-previous_error[i]
 	    integral[i]=error[i]*dt
 	    derivative[i]=(error[i]-2*previous_error[i]+previous_error2[i])/dt
+	    
+	    derivative[i]=old_derivative[i]*0.9+derivative[i]*0.1
+	    old_derivative[i]=derivative[i]	    
+	    
 	    output[i]=kp[i]*proportion[i] + ki[i]* integral[i] +kd[i]*derivative[i]
 	
 	    previous_error2[i]=previous_error[i]
@@ -203,7 +208,7 @@ def Take_off_withpid(goal_height,model=0):
 	    rc_data[2]=OFFSET[2]
 	    rc_data[3]=OFFSET[3]'''
 	
-	rc_data[0]=1640
+	rc_data[0]=1680
 	send_rcdata(rc_data)
 	
 	filehanher.write(str(get[2])+"   "+str(rc_data[2])+"   "+str(get[3])+"   "+str(rc_data[3])+"\r\n")
@@ -220,6 +225,7 @@ def Fix_Point(signature):
     error=[0,0,0,0]
     integral=[0,0,0,0]
     derivative=[0,0,0,0]
+    old_derivative=[0,0,0,0]
     output=[0,0,0,0]
     goal=[0,0,0,0]
     get=[0,0,0,0]   
@@ -278,6 +284,8 @@ def Fix_Point(signature):
 	    error[i]=goal[i]-get[i]
 	    integral[i]+=error[i]*dt
 	    derivative[i]=(error[i]-previous_error[i])/dt
+	    derivative[i]=old_derivative[i]*0.9+derivative[i]*0.1
+	    old_derivative[i]=derivative[i]
 	    output[i]=kp[i]* error[i]+ki[i]* integral[i]+kd[i]* derivative[i]
 	    rc_data[i]+=output[i]*(0.55+0.45*output[i]/RANGE[i])
 	    #rc_data[i]=OFFSET[i]+output[i]
@@ -606,6 +614,7 @@ def FlyToGoalArea(speed_x,speed_y,timeout):
     proportion=[0,0,0,0]
     integral=[0,0,0,0]
     derivative=[0,0,0,0]
+    old_derivative=[0,0,0,0]
     output=[0,0,0,0]
     goal=[0,YAW_INIT,speed_x,speed_y]
     get=[0,0,0,0]
@@ -643,6 +652,10 @@ def FlyToGoalArea(speed_x,speed_y,timeout):
 	    proportion[i]=error[i]-previous_error[i]
 	    integral[i]=error[i]*dt
 	    derivative[i]=(error[i]-2*previous_error[i]+previous_error2[i])/dt
+	    
+	    derivative[i]=old_derivative[i]*0.9+derivative[i]*0.1
+	    old_derivative[i]=derivative[i]	    
+
 	    output[i]=kp[i]*proportion[i] + ki[i]* integral[i] +kd[i]*derivative[i]
 	    
 	    previous_error2[i]=previous_error[i]
@@ -720,7 +733,7 @@ is_sigint_up = False
 def test_senser():
     last_time=time.time()
     while(1):
-	data=camera_info()
+	data=offset_array[:]
 	dt=time.time()-last_time
 	print dt
 	print data
@@ -733,12 +746,14 @@ if __name__ == '__main__':
     print("Create new process as reader!")                   
     Serial_process = mp.Process(target=Serial_Monitor, args=(senser_array,data_array,out_array))
     Serial_process.start()
+    Camera_process = mp.Process(target=Offset_Detect,args=(offset_array,))
+    Camera_process.start()
     #print data_array
     #print data_array[:]
     #print out_array
     #print out_array[:]
     INIT()
-    Fly_process = mp.Process(target=Fly, args=())
+    Fly_process = mp.Process(target=test_senser, args=())
     #Detect_process = mp.Process(target=Offset_Detect, args=(offset_data_queue,))
     #Detect_process.start()
     
@@ -783,6 +798,13 @@ if __name__ == '__main__':
 		    #Detect_process.terminate()
 		except Exception, exc:
 		    print "err1:",Exception, ":", exc
+		    
+		try:
+		    Camera_process.terminate()
+		    #Detect_process.terminate()
+		except Exception, exc:
+		    print "err1:",Exception, ":", exc	
+		    
 		GPIO.output(PIN_CTR,GPIO.LOW)
 		time.sleep(2)
 		GPIO.output(PIN_ERR,GPIO.LOW)

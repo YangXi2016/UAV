@@ -125,62 +125,106 @@ def camera_info():
     #return [line_offset,object_x,object_y,speed_x,speed_y]
     return result
 
-def Offset_Detect(offset_data_queue):
-    data=[0,0,0,0,0]
-    old_data=camera_info() 
-    '''filepath1=time.strftime( '%Y-%m-%d %X', time.localtime() )
-    filepath2=filepath1
-    filepath1+='sourcedata.txt'
-    filepath2+='resultdata.txt'''
-    
-    while(1):
-	#file1=open(filepath1,'a')
-	#file2=open(filepath2,'a')
-	new_data=camera_info()
-	for i in range(5):
-	    data[i]=int(0.9*old_data[i]+0.1*new_data[i])
-	    '''file1.write(str(new_data[i])+'  ')
-	    file2.write(str(data[i])+'  ')
-	file1.write('\r\n')
-	file2.write('\r\n')
-	file1.close()
-	file2.close()'''
-	#print data
-	
-	old_data=data
-        safe_put(offset_data_queue, data)
 
-	
-    '''with PiCamera() as camera:
-        #初始化相机 图像大小\采集速率
-        #camera = PiCamera()
-        camera.resolution = (FRAME_WIDTH, FRAME_HEIGHT)
-        camera.awb_mode = "incandescent"
-        camera.iso=0
-        camera.framerate = 10
-        rawCapture = PiRGBArray(camera, size=(FRAME_WIDTH, FRAME_HEIGHT))
-        time.sleep(0.1)
+def handle_frame(Frame):
+    frame=Frame
+    kernel=np.ones((5,5),np.uint8)
+    frame=cv2.erode(frame,kernel,iterations=1)
+    gray=cv2.cvtColor(frame,cv2.COLOR_BGR2GRAY)
 
-        preColor = None #光流所用
-        # 以BGR格式采集图像
-        for rawFrame in camera.capture_continuous(rawCapture, format="bgr", use_video_port=True):
-            frame = rawFrame.array
-            # 颜色空间变换
-            hsv = cv2.cvtColor(frame, cv2.COLOR_BGR2HSV)
+    #gaussion filter
+    blur=cv2.GaussianBlur(gray,(5,5),0)    
+    #set threshold
+    ret1,th1=cv2.threshold(blur,0,255,cv2.THRESH_BINARY+cv2.THRESH_OTSU)
+    if(ret1==0):
+	return None
+    #cv2.imshow('th1',th1)
+    lines=cv2.HoughLines(image=th1, rho=7, theta=np.pi/60, threshold=200)
+    if lines==None:
+	return None 
+    return lines[0]
 
-            # 图像处理
-            offset_data=processImage(hsv, 1, frame)
-            safe_put(offset_data_queue, offset_data)
-            processImage(hsv, 2, frame)
-            processImage(hsv, 3, frame)
+def handle_data(lines):
+    rho,theta=lines[0]
+    a=np.cos(theta)
+    b=np.sin(theta)
+    x0=a*rho
+    y0=b*rho
+    x1=int(x0+1000*(-b))
+    y1=int(y0+1000*(a))
+    x2=int(x0-1000*(-b))
+    y2=int(y0-1000*(a))
 
-    ##      cv2.imshow('mask',mask)
-            cv2.imshow("OffsetDetect", frame)
-            
-            # q键退出
-            key = cv2.waitKey(1) & 0xFF
-            rawCapture.truncate(0)
-            if key == ord("q"):
-                break
+    '''cv2.line(frame,(x1,y1),(x2,y2),(255,0,255),2)
+    cv2.circle(frame,(64,48),6,(0,0,255),4)
+    cv2.circle(frame,(x1,y1),3,(0,255,0),3)
+    cv2.circle(frame,(x2,y2),3,(255,255,0),3)
+    cv2.imshow('toshow',frame)'''  
+    return rho,theta
 
-        cv2.destroyAllWindows()'''
+def cal_transform(rho,theta):
+    CENTER_X=64
+    CENTER_Y=48    
+    try:
+	if(theta==0):
+	    angle_YAW=0
+	    out_y=0
+	    out_x=rho-CENTER_X
+	    return out_x,out_y,angle_YAW
+	elif(theta>math.pi/2):
+	    angle_YAW=theta-math.pi
+	else:
+	    angle_YAW=theta
+
+	x0=rho/math.cos(theta)
+	y0=rho/math.sin(theta)
+	k=y0/x0
+	out_x=(y0+CENTER_X/k-CENTER_Y)/(k+1/k)
+	out_y=-k*out_x+y0
+	out_y=96-out_y
+	out_x=out_x-CENTER_X
+	out_y=out_y-CENTER_Y
+	return out_x,out_y,angle_YAW
+    except:
+	print 'calculation error'
+	return None,None,None
+
+def Offset_Detect(offset_array):
+    cap=cv2.VideoCapture(0)
+    if(cap.isOpened()==False):
+	cap.open()    
+    ret_width=cap.set(3,320)
+    ret_hight=cap.set(4,240)
+    ret_fps=cap.set(5,30)     
+    #last_time=0
+    while True:    
+	#print 'alltime:',time.time()-last_time
+	#last_time=time.time()
+
+	ret,frame=cap.read()
+	frame=cv2.resize(frame,(120,90))
+	lines = handle_frame(frame)
+	if(lines==None):
+	    print 'fail to get lines'
+	    continue    
+	#print 'handle_frame:',time.time()-last_time
+	rho,theta=handle_data(lines)
+	#print rho,theta
+	#print 'handle_data:',time.time()-last_time
+	out_x,out_y,angle_YAW=cal_transform(rho, theta)
+	if(out_x==None):
+	    print 'fail to get output'
+	    continue
+	else:
+	    print out_x,out_y,angle_YAW
+	    offset_array[0]=out_x
+	    offset_array[1]=out_y
+	    offset_array[2]=angle_YAW
+	'''print out_x,out_y,angle_YAW   
+	print 'cal_transform:',time.time()-last_time    
+	k=cv2.waitKey(1)&0xFF  
+	if k==27:
+	    break'''    
+
+    cap.release()
+    cv2.destroyAllWindows()    

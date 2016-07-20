@@ -114,7 +114,7 @@ def request_user(id=None):
     global data_array
     data=data_array[:]
     #data=request(1)
-    print data
+    #print data
     if data==0:
         return 0
     ROL=np.int16(((data[0]<<8)+data[1]))/100.0
@@ -126,7 +126,7 @@ def request_user(id=None):
     FLY_MODEL=data[12]
     ARMED=data[13]
     result=[ROL,PIT,YAW,SPEED_Z,ALT_USE,FLY_MODEL,ARMED]
-    #print result
+    print result
     if(id==None):
         return result
     else:

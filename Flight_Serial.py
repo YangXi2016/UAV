@@ -48,7 +48,7 @@ def Serial_Monitor(senser_array,data_array,out_array):
 	if(cmd[0]!='\x00'):
 	    #print cmd
 	    Send_cmd(ser,cmd)
-	    out_array[:]=['\x00' for i in range(30)]
+	    out_array[:]=[0 for i in range(30)]
 	if(ser.inWaiting()>0):
 	    data=ser.read()
 	    if(state==0 and ord(data)==HEAD_RECE[0]):
@@ -82,6 +82,9 @@ def Serial_Monitor(senser_array,data_array,out_array):
 		    pass
 		elif(frame[2]==0xF1):
 		    #print frame
+		    #print time.time()-last_time
+		    #print ser.inWaiting()
+		    #last_time=time.time()
 		    senser_array[:]=frame[4:16]
 		    data_array[:]=frame[10:-1]
 		    '''for i in range(4,16):
