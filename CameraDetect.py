@@ -109,6 +109,7 @@ def camera_info():
     CAMERA_SER.flushInput()
     CAMERA_SER.write('i')
     data=CAMERA_SER.read(8)
+    time.sleep(0.005)
     result=[0,0,0,0,0,0,0,0]
     if(len(data)!=8):
         print "camera_info error"
@@ -144,7 +145,7 @@ def handle_frame(Frame):
 	return None 
     return lines[0]
 
-def handle_data(lines):
+def handle_data(lines,frame):
     rho,theta=lines[0]
     a=np.cos(theta)
     b=np.sin(theta)
@@ -155,11 +156,11 @@ def handle_data(lines):
     x2=int(x0-1000*(-b))
     y2=int(y0-1000*(a))
 
-    '''cv2.line(frame,(x1,y1),(x2,y2),(255,0,255),2)
+    cv2.line(frame,(x1,y1),(x2,y2),(255,0,255),2)
     cv2.circle(frame,(64,48),6,(0,0,255),4)
     cv2.circle(frame,(x1,y1),3,(0,255,0),3)
     cv2.circle(frame,(x2,y2),3,(255,255,0),3)
-    cv2.imshow('toshow',frame)'''  
+    cv2.imshow('toshow',frame)  
     return rho,theta
 
 def cal_transform(rho,theta):
@@ -195,36 +196,55 @@ def Offset_Detect(offset_array):
 	cap.open()    
     ret_width=cap.set(3,320)
     ret_hight=cap.set(4,240)
-    ret_fps=cap.set(5,30)     
+    ret_fps=cap.set(5,30)
+    out_x=0
+    out_y=0
+    angle_YAW=0
+    old_out_x=0
+    old_out_y=0
+    old_angle_YAW=0
+    
     #last_time=0
     while True:    
 	#print 'alltime:',time.time()-last_time
 	#last_time=time.time()
 
 	ret,frame=cap.read()
-	frame=cv2.resize(frame,(120,90))
+	frame=cv2.resize(frame,(128,96))
 	lines = handle_frame(frame)
 	if(lines==None):
 	    print 'fail to get lines'
+	    offset_array[0]=255
+	    offset_array[1]=255
+	    offset_array[2]=255
 	    continue    
 	#print 'handle_frame:',time.time()-last_time
-	rho,theta=handle_data(lines)
+	rho,theta=handle_data(lines,frame)
 	#print rho,theta
 	#print 'handle_data:',time.time()-last_time
 	out_x,out_y,angle_YAW=cal_transform(rho, theta)
 	if(out_x==None):
 	    print 'fail to get output'
+	    offset_array[0]=255
+	    offset_array[1]=255
+	    offset_array[2]=255
 	    continue
 	else:
-	    print out_x,out_y,angle_YAW
+	    #print out_x,out_y,angle_YAW
+	    out_x=old_out_x*0.9+out_x*0.1
+	    out_y=old_out_y*0.9+out_x*0.1
+	    angle_YAW=old_angle_YAW*0.9+angle_YAW*0.1
+	    old_out_x=out_x
+	    old_out_y=out_y
+	    old_angle_YAW=angle_YAW
 	    offset_array[0]=out_x
 	    offset_array[1]=out_y
 	    offset_array[2]=angle_YAW
-	'''print out_x,out_y,angle_YAW   
-	print 'cal_transform:',time.time()-last_time    
+	#print out_x,out_y,angle_YAW   
+	#print 'cal_transform:',time.time()-last_time    
 	k=cv2.waitKey(1)&0xFF  
 	if k==27:
-	    break'''    
+	    break    
 
     cap.release()
     cv2.destroyAllWindows()    

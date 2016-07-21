@@ -69,7 +69,7 @@ kd=[0,0, 0.0015, -0.001,   0,0]
 '''kp=[0,0.1,1,1,0,0]
 ki=[0,0.03,0,0,0,0]
 kd=[0,0.01,0.01,0.01,0,0]'''
-OFFSET=[1500,1500,1500,1565]#[thr_offset,yaw_offset,rol_offset,pit_offset]
+OFFSET=[1500,1500,1475,1575]#[thr_offset,yaw_offset,rol_offset,pit_offset]
 RANGE=[300,100,100,100]#[thr_range,yaw_range,rol_range,pit_range]
 rc_data[1:4]=OFFSET[1:4]
 
@@ -82,7 +82,7 @@ rc_data[1:4]=OFFSET[1:4]
 senser_array=mp.Array('B', [0 for i in range(12)])
 data_array=mp.Array('B', [0 for i in range(14)])
 out_array =mp.Array('B', [0 for i in range(30)])
-offset_array=mp.Array('f',[0 for i in range(8)])
+offset_array=mp.Array('f',[0 for i in range(3)])
 #print data_array
 #print out_array
 
@@ -101,7 +101,7 @@ PIN_ERR=31
 #选择串口
 #SER_COM='COM5'
 SER_COM='/dev/ttyUSB0'
-CAMERA_COM='/dev/ttyACM0'
+CAMERA_COM='/dev/ttyUSB1'
 #safe_get and saft_put
 
 '''def safe_put(queue,data):

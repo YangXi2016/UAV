@@ -112,9 +112,9 @@ def Take_off_withpid(goal_height,model=0):
     send_rcdata(rc_data)
     time.sleep(0.1)    
     
-    ultraheight()
+    baroheight()
     time.sleep(0.1)
-    ultraheight()
+    baroheight()
     time.sleep(0.1)
     
     unlock()
@@ -208,7 +208,7 @@ def Take_off_withpid(goal_height,model=0):
 	    rc_data[2]=OFFSET[2]
 	    rc_data[3]=OFFSET[3]'''
 	
-	rc_data[0]=1680
+	rc_data[0]=1580
 	send_rcdata(rc_data)
 	
 	filehanher.write(str(get[2])+"   "+str(rc_data[2])+"   "+str(get[3])+"   "+str(rc_data[3])+"\r\n")
@@ -312,69 +312,78 @@ def Fix_Point(signature):
 	#filehanher.write(str(YAW_INIT)+"   "+str(YAW)+"   "+str(get[1])+"   "+str(rc_data[1])+"\r\n")
 	#filehanher.close()
 
-def Patrol(speed_y):
-    global YAW_INIT,OFFSET
-    #保险阈值 
-    #max_ang=1.5	    #度
-    danger_ang=15   #度
-    max_speed=400    #cm/s
-    takeoff_speed=500
-    max_height=100  #cm
-    #takeoff_height=30
-    #height_range=10 #cm
-    #pid参数
-
+def Patrol(speed_y,timeout):
+    #thr,yaw,tol,pit
     previous_error=[0,0,0,0]
+    previous_error2=[0,0,0,0]
     error=[0,0,0,0]
+    proportion=[0,0,0,0]
     integral=[0,0,0,0]
     derivative=[0,0,0,0]
+    old_derivative=[0,0,0,0]
     output=[0,0,0,0]
-    goal=[0,0,0,0]
+    goal=[0,0,0,speed_y]
     get=[0,0,0,0]
-    
-    #goal[0] = goal_height# cm  
-    goal[1]=YAW_INIT
-
-    last_time=time.time()    
-    
-    begin_time=last_time
+    get[1]=YAW_INIT
+    begin_time=time.time()
+    last_time=time.time()
     while True:
 	if time.time()-begin_time>timeout:
 	    break
-	data=request_user()
-	#print data
-	if data==0 or data[4]>260:
-	    time.sleep(0.1)
-	    data=request_user()
-	[ROL,PIT,YAW,SPEED_Z,ALT_USE,FLY_MODEL,ARMED]=data
-
-	get[1]=YAW
-	
 	data=camera_info()
-	if(data[3]==0 or data[4]==0):
-	    get[2]=goal[2]
-	    get[3]=goal[3]
-	else:
-	    get[2]=data[3]
-	    get[3]=data[4]
-	    
+	print data
+	for i in range(6):
+	    if(data[i]!=0):
+		return
+	
+	'''[ROL,PIT,YAW,SPEED_Z,ALT_USE,FLY_MODEL,ARMED]=request_user()
+	get[1]=YAW
+	if(YAW-goal[1]>180):
+	    get[1]-=360
+	if(YAW-goal[1]<-180):
+	    get[1]+=360	'''
+	height=request_user(4)
+	[out_x,out_y,theta]=offset_array[:]
+	offset_array[:]=[255,255,255]
+	if(out_x<100):#仅以此表示该帧数据可用
+	    offset_array[:]=[255,255,255]
+	    get[1]=theta
+	    goal[2]=kp_x*out_x*height/100
+	    goal[2]=kp_y*out_y*height/100
+	    if(goal[2]>SPEED_LIMIT):
+		goal[2]=SPEED_LIMIT
+	    if(goal[3]>SPEED_LIMIT):
+		goal[3]=SPEED_LIMIT
+		
+	#data=camera_info()
+	get[2]=data[6]
+	get[3]=data[7]
+		
 	dt=time.time()-last_time
-	last_time=time.time()	
-	#根据get数据得到pid输出
+	print 'dt:',dt
+	last_time=time.time()
+	#print "yaw:",YAW_INIT,'   ',YAW
+	print "speed:",get[2],'   ',get[3]
 	for i in range(1,4):
 	    #print(get[i],goal[i])
 	    error[i]=goal[i]-get[i]
-	    integral[i]+=error[i]*dt
-	    derivative[i]=(error[i]-previous_error[i])/dt
-	    output[i]=kp[i]* error[i]+ki[i]* integral[i]+kd[i]* derivative[i]
-	    #rc_data[i]+=output[i]
-	    rc_data[i]=OFFSET[i]+output[i]
-	    print(kp[i]* error[i],ki[i]* integral[i],kd[i]* derivative[i])
+	    proportion[i]=error[i]-previous_error[i]
+	    integral[i]=error[i]*dt
+	    derivative[i]=(error[i]-2*previous_error[i]+previous_error2[i])/dt
 	    
-	'''if((radius<min_radius) or (radius>max_radius)):
-	    rc_data[2]=OFFSET[2]
-	    rc_data[3]=OFFSET[3]'''
-		
+	    derivative[i]=old_derivative[i]*0.9+derivative[i]*0.1
+	    old_derivative[i]=derivative[i]	    
+
+	    output[i]=kp[i]*proportion[i] + ki[i]* integral[i] +kd[i]*derivative[i]
+	    
+	    previous_error2[i]=previous_error[i]
+	    previous_error[i]=error[i]
+	    
+	    rc_data[i]+=output[i]
+	    #rc_data[i]+=output[i]*(0.55+0.45*output[i]/RANGE[i])
+	    #rc_data[i]=OFFSET[i]+output[i]
+	    print(kp[i]* proportion[i],ki[i]* integral[i],kd[i]* derivative[i])
+	    	
 	for i in range (4):
 	    if rc_data[i]>OFFSET[i]+RANGE[i]:
 		rc_data[i] = OFFSET[i]+RANGE[i]
@@ -579,7 +588,8 @@ def myPlaneFloat(timeout):
 def Fly():
     #INIT()
     Take_off_withpid(90,1)
-    FlyToGoalArea(0,0,150)
+    Patrol(5,150)
+    #FlyToGoalArea(0,0,150)
     #Fix_Point(0)
     '''rc_data[0:4]=OFFSET[0:4]
     rc_data[3]=OFFSET[3]+35
@@ -733,11 +743,18 @@ is_sigint_up = False
 def test_senser():
     last_time=time.time()
     while(1):
-	data=offset_array[:]
+	'''data=offset_array[:]
+	offset_array[0]=255
+	if(data[0]!=255):
+	    dt=time.time()-last_time
+	    print dt
+	    print data
+	    last_time=time.time()'''
+	data=camera_info()
 	dt=time.time()-last_time
-	print dt
-	print data
 	last_time=time.time()
+	print dt
+	print data	
 
 if __name__ == '__main__':
     global senser_array,data_array,out_array
@@ -753,7 +770,7 @@ if __name__ == '__main__':
     #print out_array
     #print out_array[:]
     INIT()
-    Fly_process = mp.Process(target=test_senser, args=())
+    Fly_process = mp.Process(target=Fly, args=())
     #Detect_process = mp.Process(target=Offset_Detect, args=(offset_data_queue,))
     #Detect_process.start()
     

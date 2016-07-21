@@ -58,7 +58,8 @@ def baroheight():
         cmd,Sum= assembly_cmd(HEAD_SEND, COMMAND, cmd_baroheight_mode)
         #out_queue.put(cmd)
         out_array[:len(cmd)]=map(ord,cmd)
-        state = Wait_Check(data_queue, COMMAND, Sum)
+        #state = Wait_Check(data_queue, COMMAND, Sum)
+        state=1
         if state ==1:
             height_mode=1
             print state
