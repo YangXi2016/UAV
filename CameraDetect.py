@@ -124,28 +124,34 @@ def camera_info():
 	result[6]=127-ord(data[6])#-SPEED_X_INIT
 	result[7]=127-ord(data[7])#-SPEED_Y_INIT
     #return [line_offset,object_x,object_y,speed_x,speed_y]
+    print result
     return result
 
-
-def handle_frame(Frame):
-    frame=Frame
+def handle_frame(rawFrame):
+    frame_time=time.time()
+    frame=rawFrame.array
     kernel=np.ones((5,5),np.uint8)
     frame=cv2.erode(frame,kernel,iterations=1)
     gray=cv2.cvtColor(frame,cv2.COLOR_BGR2GRAY)
 
     #gaussion filter
     blur=cv2.GaussianBlur(gray,(5,5),0)    
-    #set threshold
+
+    #set threshold,set a fixed threshold
     ret1,th1=cv2.threshold(blur,0,255,cv2.THRESH_BINARY+cv2.THRESH_OTSU)
+    #ret1,th1=cv2.threshold(blur,190,255,cv2.THRESH_BINARY)
     if(ret1==0):
 	return None
-    #cv2.imshow('th1',th1)
-    lines=cv2.HoughLines(image=th1, rho=7, theta=np.pi/60, threshold=200)
+    cv2.imshow('th1',th1)
+    lines=cv2.HoughLines(image=th1, rho=3, theta=np.pi/60, threshold=60)
     if lines==None:
 	return None 
+    #print 'frametime:',time.time()-frame_time
     return lines[0]
 
-def handle_data(lines,frame):
+#input lines,output:return rho,theta;what's more:show img
+def handle_data(lines,img_toshow):
+    data_time=time.time()
     rho,theta=lines[0]
     a=np.cos(theta)
     b=np.sin(theta)
@@ -156,14 +162,29 @@ def handle_data(lines,frame):
     x2=int(x0-1000*(-b))
     y2=int(y0-1000*(a))
 
-    cv2.line(frame,(x1,y1),(x2,y2),(255,0,255),2)
-    cv2.circle(frame,(64,48),6,(0,0,255),4)
-    cv2.circle(frame,(x1,y1),3,(0,255,0),3)
-    cv2.circle(frame,(x2,y2),3,(255,255,0),3)
-    cv2.imshow('toshow',frame)  
+    cv2.line(img_toshow,(x1,y1),(x2,y2),(255,0,255),2)
+    cv2.circle(img_toshow,(64,48),6,(0,0,255),4)
+    cv2.circle(img_toshow,(x1,y1),3,(0,255,0),3)
+    cv2.circle(img_toshow,(x2,y2),3,(255,255,0),3)
+    cv2.imshow('toshow',img_toshow)   
+    #print 'datatime',time.time()-data_time
     return rho,theta
 
+def next_frame(rawCapture):
+    if rawCapture.seekable():
+	rawCapture.seek(0)
+	rawCapture.truncate(0)
+    else:
+	rawCapture.truncate(0) 
+	
+
+#transform the axis and calculate (,angle)
+#angle is directly relevant to YAW
+#when out_x,out_y is negative, it means the line is left and behind
+#when angle is negative, it means left,unit:radian
+#if error occurs,return None
 def cal_transform(rho,theta):
+    cal_time=time.time()
     CENTER_X=64
     CENTER_Y=48    
     try:
@@ -171,6 +192,7 @@ def cal_transform(rho,theta):
 	    angle_YAW=0
 	    out_y=0
 	    out_x=rho-CENTER_X
+	    #print 'caltime:',time.time()-cal_time
 	    return out_x,out_y,angle_YAW
 	elif(theta>math.pi/2):
 	    angle_YAW=theta-math.pi
@@ -185,66 +207,66 @@ def cal_transform(rho,theta):
 	out_y=96-out_y
 	out_x=out_x-CENTER_X
 	out_y=out_y-CENTER_Y
+	#print 'caltime:',time.time()-cal_time
 	return out_x,out_y,angle_YAW
     except:
 	print 'calculation error'
+	#print 'caltime:',time.time()-cal_time
 	return None,None,None
+    
 
 def Offset_Detect(offset_array):
-    cap=cv2.VideoCapture(0)
-    if(cap.isOpened()==False):
-	cap.open()    
-    ret_width=cap.set(3,320)
-    ret_hight=cap.set(4,240)
-    ret_fps=cap.set(5,30)
-    out_x=0
-    out_y=0
-    angle_YAW=0
-    old_out_x=0
-    old_out_y=0
-    old_angle_YAW=0
-    
-    #last_time=0
-    while True:    
-	#print 'alltime:',time.time()-last_time
-	#last_time=time.time()
+    FRAME_WIDTH = 128
+    FRAME_HEIGHT = 96    
+    camera = PiCamera()
+    camera.resolution = (FRAME_WIDTH, FRAME_HEIGHT)
+    camera.framerate = 30
 
-	ret,frame=cap.read()
-	frame=cv2.resize(frame,(128,96))
-	lines = handle_frame(frame)
+    time.sleep(2)
+    #fix the values
+    camera.iso=400
+    camera.shutter_speed = camera.exposure_speed
+    camera.exposure_mode = 'off'
+    g = camera.awb_gains
+    camera.awb_mode = 'off'
+    camera.awb_gains = g      
+
+    rawCapture = PiRGBArray(camera, size=(FRAME_WIDTH, FRAME_HEIGHT))
+    time.sleep(0.1) 
+
+    last_time=0
+    for rawFrame in camera.capture_continuous(rawCapture, format="bgr", use_video_port=True):
+	#print 'one frame start'
+	#print 'all_time:',time.time()-last_time
+	last_time=time.time()        
+
+	img_toshow=rawFrame.array
+	lines=handle_frame(rawFrame)
 	if(lines==None):
 	    print 'fail to get lines'
 	    offset_array[0]=255
-	    offset_array[1]=255
-	    offset_array[2]=255
-	    continue    
-	#print 'handle_frame:',time.time()-last_time
-	rho,theta=handle_data(lines,frame)
+	    next_frame(rawCapture)
+	    continue
+	#print 'innerlinestime:',time.time()-last_time
+
+	rho,theta=handle_data(lines,img_toshow)
 	#print rho,theta
-	#print 'handle_data:',time.time()-last_time
 	out_x,out_y,angle_YAW=cal_transform(rho, theta)
 	if(out_x==None):
 	    print 'fail to get output'
 	    offset_array[0]=255
-	    offset_array[1]=255
-	    offset_array[2]=255
+	    next_frame(rawCapture)
 	    continue
-	else:
-	    #print out_x,out_y,angle_YAW
-	    out_x=old_out_x*0.9+out_x*0.1
-	    out_y=old_out_y*0.9+out_x*0.1
-	    angle_YAW=old_angle_YAW*0.9+angle_YAW*0.1
-	    old_out_x=out_x
-	    old_out_y=out_y
-	    old_angle_YAW=angle_YAW
-	    offset_array[0]=out_x
-	    offset_array[1]=out_y
-	    offset_array[2]=angle_YAW
-	#print out_x,out_y,angle_YAW   
-	#print 'cal_transform:',time.time()-last_time    
+	#print out_x,out_y,angle_YAW
+	#print 'outputtime:',time.time()-last_time
+	offset_array[:]=[out_x,out_y,angle_YAW]
+	next_frame(rawCapture)    
+
+	#rawCapture.truncate(0)
+	#print 'seektime:',time.time()-last_time
 	k=cv2.waitKey(1)&0xFF  
 	if k==27:
-	    break    
-
-    cap.release()
-    cv2.destroyAllWindows()    
+	    break 
+	#print 'keytime:',time.time()-last_time
+    camera.close()
+    cv2.destroyAllWindows()

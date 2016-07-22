@@ -2,6 +2,7 @@
 import multiprocessing as mp
 import time
 from Tkinter import *
+
 #发送头 list
 HEAD_SEND=[0xAA,0xAF]   #tuple不可变
 HEAD_RECE=[0xAA,0xAA]
@@ -58,18 +59,18 @@ kd_pit=0
 #光流法下：#摄像头向后运动，y值为正；摄像头向右运动，x值为正。
 
 #height,rotate,left/right,ahead/back,speed_x,speed_y
-kp_x=0.02
-kp_y=0.016
+kp_x=0.1
+kp_y=0.08
 '''kp=[0,0,0,0,0,0]
 ki=[0,0,0,0,0,0]
 kd=[0,0,0,0,0,0]'''
-kp=[0,0, 3  ,  -4,    0,0]
-ki=[0,0, 0.2,  -0.2,   0,0]
-kd=[0,0, 0.0015, -0.001,   0,0]
+kp=[0,0, 0.2  ,  -0.25,    0,0]
+ki=[0,0, 0.1,  -0.1,   0,0]
+kd=[0,0, 0, 0,   0,0]
 '''kp=[0,0.1,1,1,0,0]
 ki=[0,0.03,0,0,0,0]
 kd=[0,0.01,0.01,0.01,0,0]'''
-OFFSET=[1500,1500,1475,1575]#[thr_offset,yaw_offset,rol_offset,pit_offset]
+OFFSET=[1500,1500,1500,1575]#[thr_offset,yaw_offset,rol_offset,pit_offset]
 RANGE=[300,100,100,100]#[thr_range,yaw_range,rol_range,pit_range]
 rc_data[1:4]=OFFSET[1:4]
 

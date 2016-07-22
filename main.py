@@ -10,7 +10,8 @@ def INIT():
     global YAW_INIT#,SPEED_X_INIT,SPEED_Y_INIT
     #print data_array
     #print data_array[:]
-    time.sleep(1)
+    #time.sleep(1)
+    GPIO.setwarnings(False)
     yaw_sum=0
     for i in range(10):
 	yaw_sum+=request_user(2)
@@ -112,9 +113,9 @@ def Take_off_withpid(goal_height,model=0):
     send_rcdata(rc_data)
     time.sleep(0.1)    
     
-    baroheight()
+    ultraheight()
     time.sleep(0.1)
-    baroheight()
+    ultraheight()
     time.sleep(0.1)
     
     unlock()
@@ -148,9 +149,9 @@ def Take_off_withpid(goal_height,model=0):
 	'''   
 	
 	#print "height:",height
-	if(180>=height>=goal_height or i>55):
+	if(180>=height>=goal_height):
 	    break
-	
+	#time.sleep(0.07)
 	#data=safe_get(offset_data_queue)
 	data=camera_info()
 	if(model==0):
@@ -166,8 +167,12 @@ def Take_off_withpid(goal_height,model=0):
 		goal[3]=kp_y*senser_y*height/100
 		if(goal[2]>SPEED_LIMIT):
 		    goal[2]=SPEED_LIMIT
+		if(goal[2]<-SPEED_LIMIT):
+		    goal[2]=-SPEED_LIMIT
 		if(goal[3]>SPEED_LIMIT):
-		    goal[3]=SPEED_LIMIT
+		    goal[3]=SPEED_LIMIT	    
+		if(goal[3]<-SPEED_LIMIT):
+		    goal[3]=-SPEED_LIMIT
 		
 	    print "position offset:",goal[2],"   ",goal[3]
 	get[2]=data[6]
@@ -185,7 +190,7 @@ def Take_off_withpid(goal_height,model=0):
 	    integral[i]=error[i]*dt
 	    derivative[i]=(error[i]-2*previous_error[i]+previous_error2[i])/dt
 	    
-	    derivative[i]=old_derivative[i]*0.9+derivative[i]*0.1
+	    derivative[i]=old_derivative[i]*0.95+derivative[i]*0.05
 	    old_derivative[i]=derivative[i]	    
 	    
 	    output[i]=kp[i]*proportion[i] + ki[i]* integral[i] +kd[i]*derivative[i]
@@ -208,10 +213,9 @@ def Take_off_withpid(goal_height,model=0):
 	    rc_data[2]=OFFSET[2]
 	    rc_data[3]=OFFSET[3]'''
 	
-	rc_data[0]=1580
+	rc_data[0]=1600
 	send_rcdata(rc_data)
-	
-	filehanher.write(str(get[2])+"   "+str(rc_data[2])+"   "+str(get[3])+"   "+str(rc_data[3])+"\r\n")
+	filehanher.write(str(get[2])+"   "+str(rc_data[2])+"   "+str(get[3])+"   "+str(rc_data[3])+str(goal[2])+"   "+str(goal[3])+"\r\n")
 
 
 
@@ -269,13 +273,20 @@ def Fix_Point(signature):
 	    goal[3]=kp_y*senser_y*height/100	
 	    if(goal[2]>SPEED_LIMIT):
 		goal[2]=SPEED_LIMIT
+	    if(goal[2]<-SPEED_LIMIT):
+		goal[2]=-SPEED_LIMIT
 	    if(goal[3]>SPEED_LIMIT):
 		goal[3]=SPEED_LIMIT	    
+	    if(goal[3]<-SPEED_LIMIT):
+		goal[3]=-SPEED_LIMIT	    
 	
 	get[2]=data[6]
 	get[3]=data[7]
 		
 	dt=time.time()-last_time
+	last_time=time.time()
+	dt=time.time()-last_time
+	print dt
 	last_time=time.time()
 	print "position offset:",goal[2],"   ",goal[3]
 	print "speed",data[6],'   ',data[7]
@@ -284,7 +295,7 @@ def Fix_Point(signature):
 	    error[i]=goal[i]-get[i]
 	    integral[i]+=error[i]*dt
 	    derivative[i]=(error[i]-previous_error[i])/dt
-	    derivative[i]=old_derivative[i]*0.9+derivative[i]*0.1
+	    derivative[i]=old_derivative[i]*0.95+derivative[i]*0.05
 	    old_derivative[i]=derivative[i]
 	    output[i]=kp[i]* error[i]+ki[i]* integral[i]+kd[i]* derivative[i]
 	    rc_data[i]+=output[i]*(0.55+0.45*output[i]/RANGE[i])
@@ -306,7 +317,7 @@ def Fix_Point(signature):
 	    rc_senser_x=OFFSET[3]'''
 	send_rcdata(rc_data)	
 	print "Fix_point:",signature
-	
+	filehanher.write(str(get[2])+"   "+str(rc_data[2])+"   "+str(get[3])+"   "+str(rc_data[3])+str(goal[2])+"   "+str(goal[3])+"\r\n")
 	#filehanher=open(filepath, mode='a')
 	#filehanher.write(str(senser_x)+"   "+str(get[2])+"   "+str(rc_data[2])+"   "+str(senser_y)+"   "+str(get[3])+"   "+str(rc_data[3])+"\r\n")
 	#filehanher.write(str(YAW_INIT)+"   "+str(YAW)+"   "+str(get[1])+"   "+str(rc_data[1])+"\r\n")
@@ -349,11 +360,13 @@ def Patrol(speed_y,timeout):
 	    offset_array[:]=[255,255,255]
 	    get[1]=theta
 	    goal[2]=kp_x*out_x*height/100
-	    goal[2]=kp_y*out_y*height/100
+	    #goal[2]=kp_y*out_y*height/100
 	    if(goal[2]>SPEED_LIMIT):
 		goal[2]=SPEED_LIMIT
-	    if(goal[3]>SPEED_LIMIT):
-		goal[3]=SPEED_LIMIT
+	    if(goal[2]<-SPEED_LIMIT):
+		goal[2]=-SPEED_LIMIT
+	    #if(goal[3]>SPEED_LIMIT):
+	    #goal[3]=SPEED_LIMIT
 		
 	#data=camera_info()
 	get[2]=data[6]
@@ -363,7 +376,8 @@ def Patrol(speed_y,timeout):
 	print 'dt:',dt
 	last_time=time.time()
 	#print "yaw:",YAW_INIT,'   ',YAW
-	print "speed:",get[2],'   ',get[3]
+	print "goal speed:",goal[2],'  ',goal[3]
+	print "get speed:",get[2],'   ',get[3]
 	for i in range(1,4):
 	    #print(get[i],goal[i])
 	    error[i]=goal[i]-get[i]
@@ -403,13 +417,13 @@ def PlaneLand():
     rc_data[3]=1500 #PIT
     
     
-    #send_rcdata(rc_data)
-    #time.sleep(0.1)
+    send_rcdata(rc_data)
+    ##time.sleep(0.1)
     while (rc_data[0]>1100):
-	
+	time.sleep(0.8)
 	send_rcdata(rc_data)
 	rc_data[0]-=100
-	time.sleep(0.8)
+	
     
     '''
     for i in range(0,5): 
@@ -522,7 +536,7 @@ def test():
 	    lock()
 	    print('飞机已上锁')
 	    #out_queue.put('close serial')
-	    safe_put(out_queue, 'close serial')  	    
+	    #safe_put(out_queue, 'close serial')  	    
 
 	    Serial_process.terminate()
 	    print("已退出")
@@ -586,11 +600,11 @@ def myPlaneFloat(timeout):
     
 
 def Fly():
-    #INIT()
-    Take_off_withpid(90,1)
-    Patrol(5,150)
+    INIT()
+    Take_off_withpid(90,0)
+    #Patrol(0,1250)
     #FlyToGoalArea(0,0,150)
-    #Fix_Point(0)
+    Fix_Point(0)
     '''rc_data[0:4]=OFFSET[0:4]
     rc_data[3]=OFFSET[3]+35
     FlyToGoalArea(30,0, 10)
@@ -772,9 +786,9 @@ if __name__ == '__main__':
     INIT()
     Fly_process = mp.Process(target=Fly, args=())
     #Detect_process = mp.Process(target=Offset_Detect, args=(offset_data_queue,))
-    #Detect_process.start()
+    #sDetect_process.start()
     
-    
+    #test()
     cmd=raw_input("enter 't' to take off:")
     if cmd=='t':
 	Fly_process.start()
@@ -799,7 +813,6 @@ if __name__ == '__main__':
 		    print Exception, ":", exc
 		    print("terminate error")
 		PlaneLand()
-		time.sleep(0.05)
 		lock()
 		time.sleep(0.05)
 		lock()	    
