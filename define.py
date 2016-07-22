@@ -59,18 +59,22 @@ kd_pit=0
 #光流法下：#摄像头向后运动，y值为正；摄像头向右运动，x值为正。
 
 #height,rotate,left/right,ahead/back,speed_x,speed_y
-kp_x=0.1
-kp_y=0.08
+kp_x=0.7
+kp_y=0.5
 '''kp=[0,0,0,0,0,0]
 ki=[0,0,0,0,0,0]
 kd=[0,0,0,0,0,0]'''
-kp=[0,0, 3.5,  -3.5,    0,0]
-ki=[0,0, 5.5,  -5.5,   0,0]
+kp=[0,0, 4,  -4,    0,0]
+ki=[0,0, 4,  -4,   0,0]
 kd=[0,0, 0,       0,   0,0]
 '''kp=[0,0.1,1,1,0,0]
 ki=[0,0.03,0,0,0,0]
 kd=[0,0.01,0.01,0.01,0,0]'''
-OFFSET=[1500,1500,1500,1545]#[thr_offset,yaw_offset,rol_offset,pit_offset]
+position=[0,0,0,0]	    #位置外环控制
+position_times=5
+position_i=0 
+
+OFFSET=[1500,1500,1500,1515]#[thr_offset,yaw_offset,rol_offset,pit_offset]
 RANGE=[300,100,100,100]#[thr_range,yaw_range,rol_range,pit_range]
 rc_data[1:4]=OFFSET[1:4]
 
@@ -83,7 +87,7 @@ rc_data[1:4]=OFFSET[1:4]
 senser_array=mp.Array('B', [0 for i in range(12)])
 data_array=mp.Array('B', [0 for i in range(14)])
 out_array =mp.Array('B', [0 for i in range(30)])
-offset_array=mp.Array('f',[0 for i in range(3)])
+offset_array=mp.Array('i',[0 for i in range(9)])
 #print data_array
 #print out_array
 
