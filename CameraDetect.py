@@ -117,10 +117,7 @@ def camera_info():
     else:
 	GPIO.output(PIN_ERR,GPIO.LOW)
         for i in range(6):
-            if ord(data[i])==0:
-                result[i]=0
-            else:
-                result[i]=ord(data[i])-127
+                result[i]=ord(data[i])
 	result[6]=127-ord(data[6])#-SPEED_X_INIT
 	result[7]=127-ord(data[7])#-SPEED_Y_INIT
     #return [line_offset,object_x,object_y,speed_x,speed_y]
@@ -142,7 +139,7 @@ def handle_frame(rawFrame):
     #ret1,th1=cv2.threshold(blur,190,255,cv2.THRESH_BINARY)
     if(ret1==0):
 	return None
-    cv2.imshow('th1',th1)
+    #cv2.imshow('th1',th1)
     lines=cv2.HoughLines(image=th1, rho=3, theta=np.pi/60, threshold=60)
     if lines==None:
 	return None 
@@ -162,11 +159,11 @@ def handle_data(lines,img_toshow):
     x2=int(x0-1000*(-b))
     y2=int(y0-1000*(a))
 
-    cv2.line(img_toshow,(x1,y1),(x2,y2),(255,0,255),2)
+    '''cv2.line(img_toshow,(x1,y1),(x2,y2),(255,0,255),2)
     cv2.circle(img_toshow,(64,48),6,(0,0,255),4)
     cv2.circle(img_toshow,(x1,y1),3,(0,255,0),3)
     cv2.circle(img_toshow,(x2,y2),3,(255,255,0),3)
-    cv2.imshow('toshow',img_toshow)   
+    cv2.imshow('toshow',img_toshow)'''   
     #print 'datatime',time.time()-data_time
     return rho,theta
 

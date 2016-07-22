@@ -175,8 +175,12 @@ def Take_off_withpid(goal_height,model=0):
 		    goal[3]=-SPEED_LIMIT
 		
 	    print "position offset:",goal[2],"   ",goal[3]
-	get[2]=data[6]
-	get[3]=data[7]
+	if(abs(data[6])==127 or abs(data[7]==127)):
+	    get[2]=goal[2]
+	    get[3]=goal[3]
+	else:
+	    get[2]=data[6]
+	    get[3]=data[7]
 	print "speed:",data[6],"   ",data[7]
 	    
 	dt=time.time()-last_time
@@ -215,7 +219,7 @@ def Take_off_withpid(goal_height,model=0):
 	
 	rc_data[0]=1600
 	send_rcdata(rc_data)
-	filehanher.write(str(get[2])+"   "+str(rc_data[2])+"   "+str(get[3])+"   "+str(rc_data[3])+str(goal[2])+"   "+str(goal[3])+"\r\n")
+	filehanher.write(str(get[2])+"   "+str(rc_data[2])+"   "+str(get[3])+"   "+str(rc_data[3])+"\r\n")
 
 
 
@@ -223,7 +227,7 @@ def Take_off_withpid(goal_height,model=0):
 
     rc_data[0]=OFFSET[0]
     send_rcdata(rc_data)
-def Fix_Point(signature):
+def Fix_Point(signature=-1):
     #thr,yaw,tol,pit
     previous_error=[0,0,0,0]
     error=[0,0,0,0]
@@ -258,10 +262,11 @@ def Fix_Point(signature):
 	elif(signature==1):
 	    senser_x=data[2]
 	    senser_y=data[3]	    
-	else:
+	elif(signature==2):
 	    senser_x=data[4]
 	    senser_y=data[5]
-	
+	else:
+	    return
 	if(senser_x==0 and senser_y==0):
 	    #get[2]=goal[2]
 	    #get[3]=goal[3]
@@ -317,13 +322,14 @@ def Fix_Point(signature):
 	    rc_senser_x=OFFSET[3]'''
 	send_rcdata(rc_data)	
 	print "Fix_point:",signature
-	filehanher.write(str(get[2])+"   "+str(rc_data[2])+"   "+str(get[3])+"   "+str(rc_data[3])+str(goal[2])+"   "+str(goal[3])+"\r\n")
+	filehanher.write(str(get[2])+"   "+str(rc_data[2])+"   "+str(get[3])+"   "+str(rc_data[3])+"   "+str(goal[2])+"   "+str(goal[3])+"\r\n")
 	#filehanher=open(filepath, mode='a')
 	#filehanher.write(str(senser_x)+"   "+str(get[2])+"   "+str(rc_data[2])+"   "+str(senser_y)+"   "+str(get[3])+"   "+str(rc_data[3])+"\r\n")
 	#filehanher.write(str(YAW_INIT)+"   "+str(YAW)+"   "+str(get[1])+"   "+str(rc_data[1])+"\r\n")
 	#filehanher.close()
 
-def Patrol(speed_y,timeout):
+#signature代表遇到某种颜色跳出
+def Patrol(speed_y,timeout,signature):
     #thr,yaw,tol,pit
     previous_error=[0,0,0,0]
     previous_error2=[0,0,0,0]
@@ -342,10 +348,20 @@ def Patrol(speed_y,timeout):
 	if time.time()-begin_time>timeout:
 	    break
 	data=camera_info()
-	print data
+	if(data[signature]==1):
+	    return
+	elif(data[0]==1 and data[1]==1 and data[2]==1):
+	    pass
+	elif(data[1]==1):
+	    goal[2]=4
+	elif(data[2]==1):
+	    goal[2]=-4
+	elif(data[0]==1):
+	    goal[2]=0
+	'''print data
 	for i in range(6):
 	    if(data[i]!=0):
-		return
+		return'''
 	
 	'''[ROL,PIT,YAW,SPEED_Z,ALT_USE,FLY_MODEL,ARMED]=request_user()
 	get[1]=YAW
@@ -353,24 +369,15 @@ def Patrol(speed_y,timeout):
 	    get[1]-=360
 	if(YAW-goal[1]<-180):
 	    get[1]+=360	'''
-	height=request_user(4)
-	[out_x,out_y,theta]=offset_array[:]
-	offset_array[:]=[255,255,255]
-	if(out_x<100):#仅以此表示该帧数据可用
-	    offset_array[:]=[255,255,255]
-	    get[1]=theta
-	    goal[2]=kp_x*out_x*height/100
-	    #goal[2]=kp_y*out_y*height/100
-	    if(goal[2]>SPEED_LIMIT):
-		goal[2]=SPEED_LIMIT
-	    if(goal[2]<-SPEED_LIMIT):
-		goal[2]=-SPEED_LIMIT
-	    #if(goal[3]>SPEED_LIMIT):
-	    #goal[3]=SPEED_LIMIT
+
 		
 	#data=camera_info()
-	get[2]=data[6]
-	get[3]=data[7]
+	if(abs(data[6])==127 or abs(data[7]==127)):
+	    get[2]=goal[2]
+	    get[3]=goal[3]
+	else:
+	    get[2]=data[6]
+	    get[3]=data[7]
 		
 	dt=time.time()-last_time
 	print 'dt:',dt
@@ -420,7 +427,7 @@ def PlaneLand():
     send_rcdata(rc_data)
     ##time.sleep(0.1)
     while (rc_data[0]>1100):
-	time.sleep(0.8)
+	time.sleep(0.2)
 	send_rcdata(rc_data)
 	rc_data[0]-=100
 	
@@ -601,10 +608,33 @@ def myPlaneFloat(timeout):
 
 def Fly():
     INIT()
-    Take_off_withpid(90,0)
-    #Patrol(0,1250)
-    #FlyToGoalArea(0,0,150)
-    Fix_Point(0)
+    Take_off_withpid(100,1)
+    while(1):
+	Patrol(-4,1250,signature=3)
+	rc_data[0:4]=OFFSET[0:4]
+	send_rcdata(rc_data)
+	Fix_Point()
+	time.sleep(1.5)
+	GPIO.output(PIN_CTR,GPIO.LOW)
+	Patrol(4, 1250,signature=4)
+	GPIO.output(PIN_CTR,GPIO.HIGH)
+	rc_data[0:4]=OFFSET[0:4]
+	send_rcdata(rc_data)
+	time.sleep(3)
+    '''for i in range(3):
+	GPIO.output(PIN_ERR,GPIO.HIGH)
+	time.sleep(0.2)
+	GPIO.output(PIN_ERR,GPIO.LOW)
+	time.sleep(0.2)
+    FlyToGoalArea(4,0,10)
+    FlyToGoalArea(-8,0,10)
+    for i in range(3):
+	GPIO.output(PIN_ERR,GPIO.HIGH)
+	time.sleep(0.2)
+	GPIO.output(PIN_ERR,GPIO.LOW)
+	time.sleep(0.2)
+    FlyToGoalArea(0,0,10)'''
+    #Fix_Point(0)
     '''rc_data[0:4]=OFFSET[0:4]
     rc_data[3]=OFFSET[3]+35
     FlyToGoalArea(30,0, 10)
@@ -630,7 +660,8 @@ def Fly():
 	else:
 	    GPIO.output(PIN_CTR,GPIO.HIGH)'''
     #Fix_Point()
-def FlyToGoalArea(speed_x,speed_y,timeout):
+
+def SetFly(speed_x,speed_y,timeout):
     #thr,yaw,tol,pit
     previous_error=[0,0,0,0]
     previous_error2=[0,0,0,0]
@@ -649,10 +680,11 @@ def FlyToGoalArea(speed_x,speed_y,timeout):
 	if time.time()-begin_time>timeout:
 	    break
 	data=camera_info()
-	print data
-	for i in range(6):
+	'''print data
+	for i in range(3):
 	    if(data[i]!=0):
-		return
+		pass
+		#return'''
 	
 	'''[ROL,PIT,YAW,SPEED_Z,ALT_USE,FLY_MODEL,ARMED]=request_user()
 	get[1]=YAW
@@ -662,13 +694,18 @@ def FlyToGoalArea(speed_x,speed_y,timeout):
 	    get[1]+=360	'''
 	    
 	#data=camera_info()
-	get[2]=data[6]
-	get[3]=data[7]
-		
+	if(abs(data[6])==127 or abs(data[7]==127)):
+	    get[2]=goal[2]
+	    get[3]=goal[3]
+	else:
+	    get[2]=data[6]
+	    get[3]=data[7]
+	    
 	dt=time.time()-last_time
 	print 'dt:',dt
 	last_time=time.time()
 	#print "yaw:",YAW_INIT,'   ',YAW
+	print "goal speed",goal[2],'   ',goal[3]
 	print "speed:",get[2],'   ',get[3]
 	for i in range(1,4):
 	    #print(get[i],goal[i])
@@ -770,6 +807,15 @@ def test_senser():
 	print dt
 	print data	
 
+def self_check():
+    while(1):
+	data=camera_info()
+	print data
+	data=request_user()
+	print data
+	data=offset_array[:]
+	print data
+
 if __name__ == '__main__':
     global senser_array,data_array,out_array
     print time.strftime( '%Y-%m-%d %X', time.localtime() )
@@ -790,7 +836,7 @@ if __name__ == '__main__':
     
     #test()
     cmd=raw_input("enter 't' to take off:")
-    if cmd=='t':
+    if cmd=='t': 
 	Fly_process.start()
         
     '''times=200
