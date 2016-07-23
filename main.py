@@ -37,7 +37,7 @@ def INIT():
     GPIO.setmode(GPIO.BOARD)  
     # 输出模式  
     GPIO.setup(PIN_CTR, GPIO.OUT) 
-    #GPIO.output(PIN_CTR,GPIO.HIGH)
+    GPIO.output(PIN_CTR,GPIO.HIGH)
     
     GPIO.setup(PIN_ERR, GPIO.OUT) 
     GPIO.output(PIN_ERR,GPIO.LOW)    
@@ -280,6 +280,7 @@ def Fix_Point(timeout,signature=-1):
 	    senser_y=offset_data[7]
 	else:
 	    offset=[math.sqrt(offset_data[1]*offset_data[1]+offset_data[0]*offset_data[0]),math.sqrt(offset_data[3]*offset_data[3]+offset_data[4]*offset_data[4]),math.sqrt(offset_data[6]*offset_data[6]+offset_data[7]*offset_data[7])]
+	    print offset
 	    if(offset[0]<=offset[1] and offset[0]<=offset[2]):
 		if(offset[0]<20):
 		    return
@@ -313,8 +314,8 @@ def Fix_Point(timeout,signature=-1):
 	dt=time.time()-last_time
 	print dt
 	last_time=time.time()
-	print "position offset:",goal[2],"   ",goal[3]
-	print "speed",data[6],'   ',data[7]
+	#print "position offset:",goal[2],"   ",goal[3]
+	print "position offset",get[2],'   ',get[3]
 	for i in range(1,4):
 	    #print(get[i],goal[i])
 	    error[i]=goal[i]-get[i]
@@ -391,7 +392,7 @@ def Patrol(set_y,timeout,signature,mode=0):
 	    if mode==0:
 		position[2]=70
 	    else:
-		goal[2]=4
+		goal[2]=-4
 	elif(data[0]==1):
 	    if mode==0:
 		position[2]=0
@@ -666,16 +667,17 @@ def myPlaneFloat(timeout):
 def Fly():
     INIT()
     Take_off_withpid(100,0)
-    #SetFly(0, 0, 1111)
-    Patrol(-70, 1111, 3,mode=0)
+    SetFly(0, 0, 1111,mode=1)
+    #Patrol(-70, 1111, 3,mode=0)
     '''while(1):
-	Patrol(-4,1250,signature=3)
-	rc_data[0:4]=OFFSET[0:4]
-	send_rcdata(rc_data)
-	Fix_Point()
+	Patrol(-4,1250,signature=3,mode=1)
+	#rc_data[0:4]=OFFSET[0:4]
+	#rc_data[3]-=45
+	#send_rcdata(rc_data)
+	Fix_Point(3)
 	time.sleep(1.5)
 	GPIO.output(PIN_CTR,GPIO.LOW)
-	Patrol(4, 1250,signature=4)
+	Patrol(4, 1250,signature=4,mode=1)
 	GPIO.output(PIN_CTR,GPIO.HIGH)
 	rc_data[0:4]=OFFSET[0:4]
 	send_rcdata(rc_data)

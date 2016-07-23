@@ -74,7 +74,7 @@ position=[0,0,0,0]	    #位置外环控制
 position_times=5
 position_i=0 
 
-OFFSET=[1500,1500,1500,1515]#[thr_offset,yaw_offset,rol_offset,pit_offset]
+OFFSET=[1500,1500,1515,1525]#[thr_offset,yaw_offset,rol_offset,pit_offset]
 RANGE=[300,100,100,100]#[thr_range,yaw_range,rol_range,pit_range]
 rc_data[1:4]=OFFSET[1:4]
 

@@ -115,7 +115,7 @@ def processImage(hsv, color, frame):
         ser.write(serData)
         print serData
         '''
-    if(radius>1):
+    if(radius>4):
 	dy =int(y - 90/2 )
 	dx =int(x - 120/2)
 	radius=int(radius)
@@ -152,7 +152,7 @@ def Offset_Detect(offset_array):
     HUE_BLUE = 240/2
     HUE_YELLOW = 60/2
     HUE_RED = 0
-    HUE_RANGE = 15
+    HUE_RANGE = 10
 
     SAT_MIN = 100
     SAT_MAX = 255
@@ -192,10 +192,10 @@ def Offset_Detect(offset_array):
 	offset_array[:]=data
 	#print offset_data
 
-	#cv2.imshow("Frame", frame)
+	cv2.imshow("Frame", frame)
 	next_frame(rawCapture)
-	'''key=cv2.waitKey(1)&0xFF
+	key=cv2.waitKey(1)&0xFF
 	if key == 27:
-	    break'''
+	    break
 
     cv2.destroyAllWindows()
