@@ -41,17 +41,40 @@ def INIT():
     
     GPIO.setup(PIN_ERR, GPIO.OUT) 
     GPIO.output(PIN_ERR,GPIO.LOW)    
-def Take_off_stable():
+
+#只是将pid版中参数全部设为0，mode无意义
+def Take_off_stable(goal_height,mode=1):
+    
+    kp=[0,0,0,0,0,0]
+    ki=[0,0,0,0,0,0]
+    kd=[0,0,0,0,0,0]    
+
+    #thr,yaw,tol,pit
+    previous_error=[0,0,0,0]
+    previous_error2=[0,0,0,0]
+    error=[0,0,0,0]
+    proportion=[0,0,0,0]
+    integral=[0,0,0,0]
+    derivative=[0,0,0,0]
+    old_derivative=[0,0,0,0]
+    
+    global position	    #位置外环控制
+    global position_times
+    global position_i
+    position[2]=0
+    position[3]=0
+    set_x=0
+    set_y=0
+    output=[0,0,0,0]
+    goal=[0,0,0,0]
+    get=[0,0,0,0]   
+    
     global YAW_INIT
-    YAW_INIT=request_user(0)
+
     
-    #max_ang=1.5	    #度
-    danger_ang=25    #度
-    max_speed=500    #cm/s
-    takeoff_speed=500
-    max_height=150  #cm
-    takeoff_height=75
-    
+    goal[1]=YAW_INIT
+    last_time=time.time()
+    rc_data[3]+=20
     send_rcdata(rc_data)
     time.sleep(0.1)
     send_rcdata(rc_data)
@@ -70,22 +93,116 @@ def Take_off_stable():
     #time.sleep(0.1)	
     i=0
     while(1):
-	data=request_user()
-	#print data
-	height=data[4]
-	print "height:",height
-	if(height>45 or i>55):
-	    break
-	rc_data[0]=1660
-	send_rcdata(rc_data)
-	time.sleep(0.1)
 	i+=1
+	#data=request_user()
+	#print data
+	#height=data[4]
+	[ROL,PIT,YAW,SPEED_Z,height,FLY_MODE,ARMED]=request_user()
 	
-    '''rc_data[0]=1500
-    for i in range(300):
+	get[1]=YAW
+	if(YAW-goal[1]>180):
+	    get[1]-=360
+	if(YAW-goal[1]<-180):
+	    get[1]+=360	
+	'''去除死区，更改控制曲线
+	if(180 > YAW-goal[1]>3):
+	    get[1]=YAW-3
+	elif(180>360+YAW-goal[1]>3):
+	    get[1]=360+YAW-3
+	elif(YAW-goal[1]<-3):
+	    get[1]=YAW+3
+	elif(180<YAW-goal[1]-360<-3):
+	    get[1]=YAW+3-360
+	else:
+	    get[1]=goal[1]
+	'''   
+	
+	#print "height:",height
+	if(180>=height>=goal_height):
+	    break
+	#time.sleep(0.07)
+	#data=safe_get(offset_data_queue)
+	data=camera_info()
+	if(mode==0):
+	    if(position_i%position_times==0):
+		goal[2]=(set_x-position[2])*kp_x
+		goal[3]=(set_y-position[3])*kp_y
+		if(goal[2]>SPEED_LIMIT):
+		    goal[2]=SPEED_LIMIT
+		if(goal[2]<-SPEED_LIMIT):
+		    goal[2]=-SPEED_LIMIT
+		if(goal[3]>SPEED_LIMIT):
+		    goal[3]=SPEED_LIMIT	    
+		if(goal[3]<-SPEED_LIMIT):
+		    goal[3]=-SPEED_LIMIT		
+		position_i=0
+		#print "position offset:",position[2],"   ",position[3]
+	    else:
+		position_i+=1
+		
+
+	if(abs(data[6])==127 or abs(data[7]==127)):
+	    #get[2]=goal[2]
+	    #get[3]=goal[3]
+	    pass
+	else:
+	    get[2]=data[6]
+	    get[3]=data[7]
+	print "goal speed",goal[2],"   ",goal[3]
+	print "speed:",get[2],"   ",get[3]
+	    
+	dt=time.time()-last_time
+	print 'dt:',dt
+	last_time=time.time()
+	print "yaw","   ",YAW_INIT,'   ',get[1]
+	for i in range(1,4):
+	    #print(get[i],goal[i])
+	    error[i]=goal[i]-get[i]
+	    proportion[i]=error[i]-previous_error[i]
+	    integral[i]=error[i]*dt
+	    derivative[i]=(error[i]-2*previous_error[i]+previous_error2[i])/dt
+	    
+	    derivative[i]=old_derivative[i]*0.95+derivative[i]*0.05
+	    old_derivative[i]=derivative[i]	    
+	    
+	    output[i]=kp[i]*proportion[i] + ki[i]* integral[i] +kd[i]*derivative[i]
+	
+	    previous_error2[i]=previous_error[i]
+	    previous_error[i]=error[i]
+	
+	    rc_data[i]+=output[i]
+	    #rc_data[i]+=output[i]*(0.55+0.45*output[i]/RANGE[i])
+	    #rc_data[i]=OFFSET[i]+output[i]
+	    position[i]+=get[i]*dt
+	    print(kp[i]* proportion[i],ki[i]* integral[i],kd[i]* derivative[i],position[i])
+		
+	for i in range (1,4):
+	    if rc_data[i]>OFFSET[i]+RANGE[i]:
+		rc_data[i] = OFFSET[i]+RANGE[i]
+	    if rc_data[i]<OFFSET[i]-RANGE[i]:
+		rc_data[i] = OFFSET[i]-RANGE[i]	
+		
+	'''if(senser_x==0 and senser_y==0):
+	    rc_data[2]=OFFSET[2]
+	    rc_data[3]=OFFSET[3]'''
+	
+	rc_data[0]=1600
 	send_rcdata(rc_data)
-	time.sleep(0.1)
-'''
+	filehanher.write(str(get[2])+"   "+str(rc_data[2])+"   "+str(get[3])+"   "+str(rc_data[3])+"   "+str(position[2])+"   "+str(position[3])+"   "+str(error[2])+"   "+str(error[3])+"\r\n")
+	print "take off"
+
+
+
+
+    '''rc_data[0]=OFFSET[0]
+    rc_data[3]=OFFSET[3]+30
+    send_rcdata(rc_data)
+    while(1):
+	data=camera_info()
+	break
+    time.sleep(3)'''
+    
+
 #mode=0 fix_point;mode=1 fix_speed
 def Take_off_withpid(goal_height,mode=0):
     #thr,yaw,tol,pit
@@ -228,7 +345,7 @@ def Take_off_withpid(goal_height,mode=0):
 	rc_data[0]=1600
 	send_rcdata(rc_data)
 	filehanher.write(str(get[2])+"   "+str(rc_data[2])+"   "+str(get[3])+"   "+str(rc_data[3])+"   "+str(position[2])+"   "+str(position[3])+"   "+str(error[2])+"   "+str(error[3])+"\r\n")
-
+	print "take off"
 
 
 
@@ -239,10 +356,13 @@ def Fix_Point(timeout,signature=-1):
     global offset_array
     #thr,yaw,tol,pit
     previous_error=[0,0,0,0]
+    previous_error2=[0,0,0,0]
     error=[0,0,0,0]
+    proportion=[0,0,0,0]
     integral=[0,0,0,0]
     derivative=[0,0,0,0]
     old_derivative=[0,0,0,0]
+    
     output=[0,0,0,0]
     goal=[0,0,0,0]
     get=[0,0,0,0]   
@@ -268,18 +388,76 @@ def Fix_Point(timeout,signature=-1):
 
 	#data=camera_info()
 	offset_data=offset_array[:]
+	print offset_data
 	#data=safe_get(offset_data_queue)
 	if(signature==0):
-	    senser_x=offset_data[0]
-	    senser_y=offset_data[1]
+	    if(offset_data[2]>3):
+		if(math.sqrt(offset_data[0]*offset_data[0]+offset_data[1]*offset_data[1])<15):
+		    return
+		else:
+		    senser_x=offset_data[0]
+		    senser_y=offset_data[1]
+	    else:
+		senser_x=0
+		senser_y=0
 	elif(signature==1):
-	    senser_x=offset_data[3]
-	    senser_y=offset_data[4]	    
+	    if offset_data[5]>7:
+		if offset_data[5]>22:
+		    thresh=offset_data[5]
+		else:
+		    thresh=30
+		
+		if(math.sqrt(offset_data[3]*offset_data[3]+offset_data[4]*offset_data[4])<thresh):
+			return
+		else:
+		    senser_x=offset_data[3]
+		    senser_y=offset_data[4]	    
+	    else:
+		senser_x=0
+		senser_y=0	    
 	elif(signature==2):
-	    senser_x=offset_data[6]
-	    senser_y=offset_data[7]
+	    if(offset_data[8]>10):
+		if(math.sqrt(offset_data[7]*offset_data[7]+offset_data[6]*offset_data[6])<offset_data[8]):
+		    return
+		else:
+		    senser_x=offset_data[6]
+		    senser_y=offset_data[7]
+	    else:
+		senser_x=0
+		senser_y=0
+		
 	else:
-	    offset=[math.sqrt(offset_data[1]*offset_data[1]+offset_data[0]*offset_data[0]),math.sqrt(offset_data[3]*offset_data[3]+offset_data[4]*offset_data[4]),math.sqrt(offset_data[6]*offset_data[6]+offset_data[7]*offset_data[7])]
+	    if(offset_data[5]>8):
+		if offset_data[5]>22:
+		    thresh=offset_data[5]
+		else:
+		    thresh=30
+
+		if(math.sqrt(offset_data[3]*offset_data[3]+offset_data[4]*offset_data[4])<thresh):
+		    return
+		else:
+		    senser_x=offset_data[3]
+		    senser_y=offset_data[4]
+	    elif(offset_data[8]>12):
+		if offset_data[8]>30:
+		    thresh=offset_data[8]
+		else:
+		    thresh=30
+		if(math.sqrt(offset_data[6]*offset_data[6]+offset_data[7]*offset_data[7])<thresh):
+		    return
+		else:
+		    senser_x=offset_data[6]
+		    senser_y=offset_data[7]
+	    elif(offset_data[2]>3):
+		if(math.sqrt(offset_data[0]*offset_data[0]+offset_data[1]*offset_data[1])<20):
+		    return
+		else:
+		    senser_x=offset_data[0]
+		    senser_y=offset_data[1]
+	    else:
+		senser_x=0
+		senser_y=0
+	    '''offset=[math.sqrt(offset_data[1]*offset_data[1]+offset_data[0]*offset_data[0]),math.sqrt(offset_data[3]*offset_data[3]+offset_data[4]*offset_data[4]),math.sqrt(offset_data[6]*offset_data[6]+offset_data[7]*offset_data[7])]
 	    print offset
 	    if(offset[0]<=offset[1] and offset[0]<=offset[2]):
 		if(offset[0]<20):
@@ -298,7 +476,7 @@ def Fix_Point(timeout,signature=-1):
 		    return
 		else:
 		    senser_x=offset_data[6]
-		    senser_y=offset_data[7]
+		    senser_y=offset_data[7]'''
 	if(senser_x==-60 and senser_y==-45):
 	    #get[2]=goal[2]
 	    #get[3]=goal[3]
@@ -306,28 +484,35 @@ def Fix_Point(timeout,signature=-1):
 	    #break
 	    pass
 	else:	    
-	    get[2]=senser_x*0.25
-	    get[3]=senser_y*0.25
+	    goal[2]=senser_x*0.09
+	    goal[3]=senser_y*0.09
 		
 	dt=time.time()-last_time
-	last_time=time.time()
-	dt=time.time()-last_time
-	print dt
+	print "dt:",dt
 	last_time=time.time()
 	#print "position offset:",goal[2],"   ",goal[3]
-	print "position offset",get[2],'   ',get[3]
+	print "position offset",goal[2],'   ',goal[3]
 	for i in range(1,4):
 	    #print(get[i],goal[i])
 	    error[i]=goal[i]-get[i]
-	    integral[i]+=error[i]*dt
-	    derivative[i]=(error[i]-previous_error[i])/dt
+	    proportion[i]=error[i]-previous_error[i]
+	    integral[i]=error[i]*dt
+	    derivative[i]=(error[i]-2*previous_error[i]+previous_error2[i])/dt
+	
 	    derivative[i]=old_derivative[i]*0.95+derivative[i]*0.05
-	    old_derivative[i]=derivative[i]
-	    output[i]=kp[i]* error[i]+ki[i]* integral[i]+kd[i]* derivative[i]
-	    rc_data[i]+=output[i]*(0.55+0.45*output[i]/RANGE[i])
+	    old_derivative[i]=derivative[i]	    
+	
+	    output[i]=kp[i]*proportion[i] + ki[i]* integral[i] +kd[i]*derivative[i]
+	
+	    previous_error2[i]=previous_error[i]
+	    previous_error[i]=error[i]
+	
+	    rc_data[i]+=output[i]
+	    #rc_data[i]+=output[i]*(0.55+0.45*output[i]/RANGE[i])
 	    #rc_data[i]=OFFSET[i]+output[i]
-	    print(kp[i]* error[i],ki[i]* integral[i],kd[i]* derivative[i])
-	    
+	    position[i]+=get[i]*dt
+	    print(kp[i]* proportion[i],ki[i]* integral[i],kd[i]* derivative[i],position[i])
+
 	'''if((radius<min_radius) or (radius>max_radius)):
 	    rc_data[2]=OFFSET[2]
 	    rc_senser_x=OFFSET[3]'''
@@ -461,7 +646,8 @@ def Patrol(set_y,timeout,signature,mode=0):
 	    rc_data[i]+=output[i]
 	    #rc_data[i]+=output[i]*(0.55+0.45*output[i]/RANGE[i])
 	    #rc_data[i]=OFFSET[i]+output[i]
-	    print(kp[i]* proportion[i],ki[i]* integral[i],kd[i]* derivative[i])
+	    position[i]+=get[i]*dt
+	    print(kp[i]* proportion[i],ki[i]* integral[i],kd[i]* derivative[i],position[i])
 	    	
 	for i in range (4):
 	    if rc_data[i]>OFFSET[i]+RANGE[i]:
@@ -666,19 +852,39 @@ def myPlaneFloat(timeout):
 
 def Fly():
     INIT()
-    Take_off_withpid(100,0)
-    SetFly(0, 0, 1111,mode=1)
+    Take_off_withpid(100,mode=0)
+    #Take_off_stable(95)
+    SetFly(0, -13, 2111,mode=1)
     #Patrol(-70, 1111, 3,mode=0)
-    '''while(1):
-	Patrol(-4,1250,signature=3,mode=1)
+    #Fix_Point(1111,signature=0)
+    #GPIO.output(PIN_CTR,GPIO.LOW)
+    '''rc_data[3]+=30
+    send_rcdata(rc_data)
+    time.sleep(0.4)
+    rc_data[3]-=35
+    send_rcdata(rc_data)
+    while(1):
+	Patrol(-6,1250,signature=3,mode=1)
 	#rc_data[0:4]=OFFSET[0:4]
 	#rc_data[3]-=45
 	#send_rcdata(rc_data)
-	Fix_Point(3)
-	time.sleep(1.5)
+	while(1):
+	    offset_data=offset_array[:]
+	    if(offset_data[5]>7 or offset_data[8]>12 or offset_data[2]>3):
+		break
+	Fix_Point(30)
+	#time.sleep(0.5)
+	rc_data[3]+=20
+	send_rcdata(rc_data)
+	time.sleep(0.5)
 	GPIO.output(PIN_CTR,GPIO.LOW)
-	Patrol(4, 1250,signature=4,mode=1)
+	rc_data[3]-=20
+	send_rcdata(rc_data)
+	Patrol(8, 1250,signature=4,mode=1)
 	GPIO.output(PIN_CTR,GPIO.HIGH)
+	for i in range(10):
+	    send_rcdata(rc_data)
+	    time.sleep(0.4)
 	rc_data[0:4]=OFFSET[0:4]
 	send_rcdata(rc_data)
 	time.sleep(3)'''
@@ -917,7 +1123,7 @@ if __name__ == '__main__':
     #print out_array
     #print out_array[:]
     INIT()
-    Fly_process = mp.Process(target=self_check, args=())
+    Fly_process = mp.Process(target=Fly, args=())
     #Detect_process = mp.Process(target=Offset_Detect, args=(offset_data_queue,))
     #sDetect_process.start()
     

@@ -18,7 +18,7 @@ FRAME_HEIGHT =120#90
 HUE_BLUE = 240/2
 HUE_YELLOW = 60/2
 HUE_RED = 0
-HUE_RANGE = 25#15
+HUE_RANGE = 20#15
 
 SAT_MIN = 100
 SAT_MAX = 255
@@ -116,7 +116,7 @@ def processImage(hsv, color, frame):
         print serData
         '''
     if(radius>4):
-	dy =int(y - 90/2 )
+	dy =int(y - 90/2 - 7)#为了解决投球装置滞后引入的偏执
 	dx =int(x - 120/2)
 	radius=int(radius)
 	#print dy,dx,radius

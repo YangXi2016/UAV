@@ -59,14 +59,17 @@ kd_pit=0
 #光流法下：#摄像头向后运动，y值为正；摄像头向右运动，x值为正。
 
 #height,rotate,left/right,ahead/back,speed_x,speed_y
-kp_x=0.7
-kp_y=0.5
+kp_x=0.12
+kp_y=0.1
 '''kp=[0,0,0,0,0,0]
 ki=[0,0,0,0,0,0]
 kd=[0,0,0,0,0,0]'''
-kp=[0,0, 4,  -4,    0,0]
+'''kp=[0,0, 4,  -4,    0,0]
 ki=[0,0, 4,  -4,   0,0]
-kd=[0,0, 0,       0,   0,0]
+kd=[0,0, 0,       0,   0,0]'''
+kp=[0,0, 4,    -3.7,    0,0]
+ki=[0,0, 1.2,  -1,   0,0]
+kd=[0,0, 0,    0,   0,0]
 '''kp=[0,0.1,1,1,0,0]
 ki=[0,0.03,0,0,0,0]
 kd=[0,0.01,0.01,0.01,0,0]'''
@@ -74,7 +77,7 @@ position=[0,0,0,0]	    #位置外环控制
 position_times=5
 position_i=0 
 
-OFFSET=[1500,1500,1515,1525]#[thr_offset,yaw_offset,rol_offset,pit_offset]
+OFFSET=[1500,1500,1520,1540]#[thr_offset,yaw_offset,rol_offset,pit_offset]
 RANGE=[300,100,100,100]#[thr_range,yaw_range,rol_range,pit_range]
 rc_data[1:4]=OFFSET[1:4]
 
@@ -97,7 +100,7 @@ HEIGHT_INIT=None
 YAW_INIT=None
 #SPEED_X_INIT=0
 #SPEED_Y_INIT=0
-SPEED_LIMIT=12
+SPEED_LIMIT=15
 
 PIN_CTR=29
 PIN_ERR=31
