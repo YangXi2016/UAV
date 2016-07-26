@@ -59,8 +59,10 @@ kd_pit=0
 #光流法下：#摄像头向后运动，y值为正；摄像头向右运动，x值为正。
 
 #height,rotate,left/right,ahead/back,speed_x,speed_y
-kp_x=0.12
-kp_y=0.1
+#kp_x=0.12
+#kp_y=0.4
+kp_x=0.15
+kp_y=0.12
 '''kp=[0,0,0,0,0,0]
 ki=[0,0,0,0,0,0]
 kd=[0,0,0,0,0,0]'''
@@ -77,8 +79,8 @@ position=[0,0,0,0]	    #位置外环控制
 position_times=5
 position_i=0 
 
-OFFSET=[1500,1500,1520,1540]#[thr_offset,yaw_offset,rol_offset,pit_offset]
-RANGE=[300,100,100,100]#[thr_range,yaw_range,rol_range,pit_range]
+OFFSET=[1500,1500,1520,1555]#[thr_offset,yaw_offset,rol_offset,pit_offset]
+RANGE=[300,60,60,60]#[thr_range,yaw_range,rol_range,pit_range]
 rc_data[1:4]=OFFSET[1:4]
 
 

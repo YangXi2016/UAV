@@ -344,7 +344,7 @@ def Take_off_withpid(goal_height,mode=0):
 	
 	rc_data[0]=1600
 	send_rcdata(rc_data)
-	filehanher.write(str(get[2])+"   "+str(rc_data[2])+"   "+str(get[3])+"   "+str(rc_data[3])+"   "+str(position[2])+"   "+str(position[3])+"   "+str(error[2])+"   "+str(error[3])+"\r\n")
+	#filehanher.write(str(get[2])+"   "+str(rc_data[2])+"   "+str(get[3])+"   "+str(rc_data[3])+"   "+str(position[2])+"   "+str(position[3])+"   "+str(error[2])+"   "+str(error[3])+"\r\n")
 	print "take off"
 
 
@@ -369,7 +369,8 @@ def Fix_Point(timeout,signature=-1):
     
     #global YAW_INIT
     #YAW_INIT=request_user(0)
-    
+    senser_x=0
+    senser_y=0
     goal[1]=YAW_INIT
     last_time=time.time()
     while(1):
@@ -397,41 +398,31 @@ def Fix_Point(timeout,signature=-1):
 		else:
 		    senser_x=offset_data[0]
 		    senser_y=offset_data[1]
-	    else:
-		senser_x=0
-		senser_y=0
 	elif(signature==1):
-	    if offset_data[5]>7:
-		if offset_data[5]>22:
-		    thresh=offset_data[5]
-		else:
-		    thresh=30
-		
-		if(math.sqrt(offset_data[3]*offset_data[3]+offset_data[4]*offset_data[4])<thresh):
+	    if offset_data[5]>5:
+		if(math.sqrt(offset_data[3]*offset_data[3]+offset_data[4]*offset_data[4])<35):
 			return
 		else:
 		    senser_x=offset_data[3]
-		    senser_y=offset_data[4]	    
-	    else:
-		senser_x=0
-		senser_y=0	    
+		    senser_y=offset_data[4]	    	    
 	elif(signature==2):
-	    if(offset_data[8]>10):
+	    if(offset_data[8]>15):
+		if offset_data[5]>40:
+		    thresh=offset_data[5]
+		else:
+		    thresh=40		
 		if(math.sqrt(offset_data[7]*offset_data[7]+offset_data[6]*offset_data[6])<offset_data[8]):
 		    return
 		else:
 		    senser_x=offset_data[6]
 		    senser_y=offset_data[7]
-	    else:
-		senser_x=0
-		senser_y=0
 		
 	else:
 	    if(offset_data[5]>8):
-		if offset_data[5]>22:
+		if offset_data[5]>25:
 		    thresh=offset_data[5]
 		else:
-		    thresh=30
+		    thresh=25
 
 		if(math.sqrt(offset_data[3]*offset_data[3]+offset_data[4]*offset_data[4])<thresh):
 		    return
@@ -439,10 +430,10 @@ def Fix_Point(timeout,signature=-1):
 		    senser_x=offset_data[3]
 		    senser_y=offset_data[4]
 	    elif(offset_data[8]>12):
-		if offset_data[8]>30:
+		if offset_data[8]>40:
 		    thresh=offset_data[8]
 		else:
-		    thresh=30
+		    thresh=40
 		if(math.sqrt(offset_data[6]*offset_data[6]+offset_data[7]*offset_data[7])<thresh):
 		    return
 		else:
@@ -454,9 +445,6 @@ def Fix_Point(timeout,signature=-1):
 		else:
 		    senser_x=offset_data[0]
 		    senser_y=offset_data[1]
-	    else:
-		senser_x=0
-		senser_y=0
 	    '''offset=[math.sqrt(offset_data[1]*offset_data[1]+offset_data[0]*offset_data[0]),math.sqrt(offset_data[3]*offset_data[3]+offset_data[4]*offset_data[4]),math.sqrt(offset_data[6]*offset_data[6]+offset_data[7]*offset_data[7])]
 	    print offset
 	    if(offset[0]<=offset[1] and offset[0]<=offset[2]):
@@ -477,15 +465,9 @@ def Fix_Point(timeout,signature=-1):
 		else:
 		    senser_x=offset_data[6]
 		    senser_y=offset_data[7]'''
-	if(senser_x==-60 and senser_y==-45):
-	    #get[2]=goal[2]
-	    #get[3]=goal[3]
-	    #print "lost object",signature
-	    #break
-	    pass
-	else:	    
-	    goal[2]=senser_x*0.09
-	    goal[3]=senser_y*0.09
+	    
+	goal[2]=senser_x*kp_x
+	goal[3]=senser_y*kp_y
 		
 	dt=time.time()-last_time
 	print "dt:",dt
@@ -528,15 +510,16 @@ def Fix_Point(timeout,signature=-1):
 	    rc_senser_x=OFFSET[3]'''
 	send_rcdata(rc_data)	
 	print "Fix_point:",signature
-	filehanher.write(str(get[2])+"   "+str(rc_data[2])+"   "+str(get[3])+"   "+str(rc_data[3])+"   "+str(goal[2])+"   "+str(goal[3])+"\r\n")
+	#filehanher.write(str(get[2])+"   "+str(rc_data[2])+"   "+str(get[3])+"   "+str(rc_data[3])+"   "+str(goal[2])+"   "+str(goal[3])+"\r\n")
 	#filehanher=open(filepath, mode='a')
-	#filehanher.write(str(senser_x)+"   "+str(get[2])+"   "+str(rc_data[2])+"   "+str(senser_y)+"   "+str(get[3])+"   "+str(rc_data[3])+"\r\n")
+	filehanher.write(str(senser_x)+"   "+str(rc_data[2])+"   "+str(senser_y)+"   "+str(rc_data[3])+"\r\n")
 	#filehanher.write(str(YAW_INIT)+"   "+str(YAW)+"   "+str(get[1])+"   "+str(rc_data[1])+"\r\n")
 	#filehanher.close()
 
 #signature代表遇到某种颜色跳出
 #mode=0代表控位，mode=1代表控速
 def Patrol(set_y,timeout,signature,mode=0):
+    global offset_array
     #thr,yaw,tol,pit
     previous_error=[0,0,0,0]
     previous_error2=[0,0,0,0]
@@ -561,28 +544,28 @@ def Patrol(set_y,timeout,signature,mode=0):
 	if time.time()-begin_time>timeout:
 	    break
 	data=camera_info()
-	if(data[signature]==1):
-	    return
-	elif(data[0]==1 and data[1]==1 and data[2]==1):
+	if(signature==-1):
+	    offset_data=offset_array[:]
+	    #print data
+	    if( offset_data[5]>8):
+		return
+	else:
+	    if(data[signature]==1):
+		return
+	if(data[1]==1 and data[2]==1):
 	    pass
-	elif(data[0]==0 and data[1]==0 and data[2]==0):
-	    if mode==0:
-		position[2]=0
+	elif(data[1]==0 and data[2]==0):
+	    pass
 	elif(data[1]==1):
 	    if mode==0:
-		position[2]=-70
+		position[2]=-50
 	    else:
-		goal[2]=4
+		goal[2]=8
 	elif(data[2]==1):
 	    if mode==0:
-		position[2]=70
+		position[2]=50
 	    else:
-		goal[2]=-4
-	elif(data[0]==1):
-	    if mode==0:
-		position[2]=0
-	    else:
-		goal[2]=0	    
+		goal[2]=-8	    
 	'''print data
 	for i in range(6):
 	    if(data[i]!=0):
@@ -848,13 +831,23 @@ def myPlaneFloat(timeout):
 	    rc_data[i]=OFFSET[i]
 	send_rcdata(rc_data)
 	time.sleep(0.4)
-    
+
+def test_fly():
+    INIT()
+    Take_off_withpid(100,mode=0)
+    rc_data[0:4]=OFFSET[0:4]
+    Fix_Point(10000, 1)
+    data=offset_array[:]
+    print data 
+    print position
+    rc_data[0:4]=OFFSET[0:4]
+    SetFly(position[2]+data[3], position[3]+data[4], 1000)
 
 def Fly():
     INIT()
     Take_off_withpid(100,mode=0)
     #Take_off_stable(95)
-    SetFly(0, -13, 2111,mode=1)
+    #SetFly(0, -13, 2111,mode=1)
     #Patrol(-70, 1111, 3,mode=0)
     #Fix_Point(1111,signature=0)
     #GPIO.output(PIN_CTR,GPIO.LOW)
@@ -862,32 +855,31 @@ def Fly():
     send_rcdata(rc_data)
     time.sleep(0.4)
     rc_data[3]-=35
-    send_rcdata(rc_data)
+    send_rcdata(rc_data)'''
     while(1):
-	Patrol(-6,1250,signature=3,mode=1)
+	Patrol(-13,1250,signature=-1,mode=1)	#往前飞到颜色2；定速模式（颜色0为预警线）
 	#rc_data[0:4]=OFFSET[0:4]
 	#rc_data[3]-=45
 	#send_rcdata(rc_data)
-	while(1):
+	while(1):				#漂浮直到看到蓝色或黄色框
 	    offset_data=offset_array[:]
-	    if(offset_data[5]>7 or offset_data[8]>12 or offset_data[2]>3):
+	    if(offset_data[5]>8):
 		break
-	Fix_Point(30)
+	Fix_Point(30,signature=1)				#30s时间用于定点
 	#time.sleep(0.5)
-	rc_data[3]+=20
-	send_rcdata(rc_data)
-	time.sleep(0.5)
+
 	GPIO.output(PIN_CTR,GPIO.LOW)
-	rc_data[3]-=20
-	send_rcdata(rc_data)
-	Patrol(8, 1250,signature=4,mode=1)
+	
+	SetFly(position[2], position[3]+40, 20)    #往回退40cm，
+	
+	Patrol(13, 1250,signature=0,mode=1)	    #回退到颜色0为止，定速模式（颜色0也为起飞区颜色）
+	
+	Fix_Point(30, signature=0)		    #定点起飞区，并由光电识别模块来跳出函数
+	#SetFly(position[2], position[3], 1250, mode=0)
+	time.sleep(3)
 	GPIO.output(PIN_CTR,GPIO.HIGH)
-	for i in range(10):
-	    send_rcdata(rc_data)
-	    time.sleep(0.4)
-	rc_data[0:4]=OFFSET[0:4]
-	send_rcdata(rc_data)
-	time.sleep(3)'''
+	time.sleep(3)
+
     '''for i in range(3):
 	GPIO.output(PIN_ERR,GPIO.HIGH)
 	time.sleep(0.2)
@@ -1027,7 +1019,7 @@ def SetFly(set_x,set_y,timeout,mode=0):
 	send_rcdata(rc_data)	
 	#time.sleep(0.1)
 	filehanher.write(str(get[2])+"   "+str(rc_data[2])+"   "+str(get[3])+"   "+str(rc_data[3])+"   "+str(position[2])+"   "+str(position[3])+"   "+str(error[2])+"   "+str(error[3])+"\r\n")
-	print "KeepFly"
+	print "SetFly"
 
   
     
@@ -1123,7 +1115,7 @@ if __name__ == '__main__':
     #print out_array
     #print out_array[:]
     INIT()
-    Fly_process = mp.Process(target=Fly, args=())
+    Fly_process = mp.Process(target=test_fly, args=())
     #Detect_process = mp.Process(target=Offset_Detect, args=(offset_data_queue,))
     #sDetect_process.start()
     
@@ -1146,6 +1138,7 @@ if __name__ == '__main__':
 		print 'My KeyboardInterrupt'
 		try:
 		    #Camera_process.terminate()
+		    filehanher.close()
 		    Fly_process.terminate()
 		
 		except Exception, exc:

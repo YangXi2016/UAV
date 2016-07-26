@@ -15,10 +15,10 @@ FRAME_WIDTH = 160#120
 FRAME_HEIGHT =120#90
 
 # HSV阈值范围
-HUE_BLUE = 240/2
+HUE_BLUE = 190/2
 HUE_YELLOW = 60/2
 HUE_RED = 0
-HUE_RANGE = 20#15
+HUE_RANGE = 5#15
 
 SAT_MIN = 100
 SAT_MAX = 255
@@ -75,12 +75,12 @@ def processImage(hsv, color, frame):
 	mask2 = cv2.inRange(hsv, lo_red2, hi_red2)
 	mask = cv2.bitwise_or(mask1, mask2)
 	circleColor = (0, 0, 255)
-    elif color == 2: # blue
+    elif color == 3: # blue
 	lower_blue = np.array([ HUE_BLUE - HUE_RANGE, SAT_MIN, VAL_MIN ])
 	upper_blue = np.array([ HUE_BLUE + HUE_RANGE, SAT_MAX, VAL_MAX ])
 	mask = cv2.inRange(hsv, lower_blue, upper_blue)
 	circleColor = (255, 0, 0)
-    elif color == 3: #yellow
+    elif color == 2: #yellow
 	lower_y = np.array([ HUE_YELLOW - HUE_RANGE, SAT_MIN, VAL_MIN ])
 	upper_y = np.array([ HUE_YELLOW + HUE_RANGE, SAT_MAX, VAL_MAX ])
 	mask = cv2.inRange(hsv, lower_y, upper_y)
