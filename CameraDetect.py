@@ -15,7 +15,7 @@ FRAME_WIDTH = 160#120
 FRAME_HEIGHT =120#90
 
 # HSV阈值范围
-HUE_BLUE = 190/2
+HUE_BLUE = 200/2
 HUE_YELLOW = 60/2
 HUE_RED = 0
 HUE_RANGE = 5#15
@@ -58,8 +58,8 @@ def camera_info():
 	GPIO.output(PIN_ERR,GPIO.LOW)
         for i in range(6):
                 result[i]=ord(data[i])
-	result[6]=127-ord(data[6])#-SPEED_X_INIT
-	result[7]=127-ord(data[7])#-SPEED_Y_INIT
+	result[6]=(127-ord(data[6]))/2#-SPEED_X_INIT
+	result[7]=(127-ord(data[7]))/2#-SPEED_Y_INIT
     #return [line_offset,object_x,object_y,speed_x,speed_y]
     print result
     return result
@@ -76,8 +76,8 @@ def processImage(hsv, color, frame):
 	mask = cv2.bitwise_or(mask1, mask2)
 	circleColor = (0, 0, 255)
     elif color == 3: # blue
-	lower_blue = np.array([ HUE_BLUE - HUE_RANGE, SAT_MIN, VAL_MIN ])
-	upper_blue = np.array([ HUE_BLUE + HUE_RANGE, SAT_MAX, VAL_MAX ])
+	lower_blue = np.array([ HUE_BLUE - HUE_RANGE, 200, 90 ])
+	upper_blue = np.array([ HUE_BLUE + HUE_RANGE, SAT_MAX, 130 ])
 	mask = cv2.inRange(hsv, lower_blue, upper_blue)
 	circleColor = (255, 0, 0)
     elif color == 2: #yellow
@@ -115,6 +115,10 @@ def processImage(hsv, color, frame):
         ser.write(serData)
         print serData
         '''
+    '''if(color==3):
+	dy=-45
+	dx=-60
+	radius=0'''
     if(radius>4):
 	dy =int(y - 90/2 - 7)#为了解决投球装置滞后引入的偏执
 	dx =int(x - 120/2)

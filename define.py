@@ -61,8 +61,8 @@ kd_pit=0
 #height,rotate,left/right,ahead/back,speed_x,speed_y
 #kp_x=0.12
 #kp_y=0.4
-kp_x=0.15
-kp_y=0.12
+kp_x=0.4
+kp_y=0.3
 '''kp=[0,0,0,0,0,0]
 ki=[0,0,0,0,0,0]
 kd=[0,0,0,0,0,0]'''
@@ -79,8 +79,8 @@ position=[0,0,0,0]	    #位置外环控制
 position_times=5
 position_i=0 
 
-OFFSET=[1500,1500,1520,1555]#[thr_offset,yaw_offset,rol_offset,pit_offset]
-RANGE=[300,60,60,60]#[thr_range,yaw_range,rol_range,pit_range]
+OFFSET=[1500,1500,1520,1550]#[thr_offset,yaw_offset,rol_offset,pit_offset]
+RANGE=[300,100,100,100]#[thr_range,yaw_range,rol_range,pit_range]
 rc_data[1:4]=OFFSET[1:4]
 
 
@@ -102,7 +102,7 @@ HEIGHT_INIT=None
 YAW_INIT=None
 #SPEED_X_INIT=0
 #SPEED_Y_INIT=0
-SPEED_LIMIT=15
+SPEED_LIMIT=5
 
 PIN_CTR=29
 PIN_ERR=31
