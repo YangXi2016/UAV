@@ -27,13 +27,14 @@ def assembly_cmd(head_send,cmd_type,cmd_data):
 
 def Send_cmd(ser,cmd):
     ser.flushInput()
-    for cmdi in cmd:
-	ser.write(cmdi)
+    length=ord(cmd[3])+6
+    for i in range(length):
+	ser.write(cmd[i])
 
 
 
 #Write msg with number into the queue
-def Serial_Monitor(senser_queue,data_queue,out_queue):
+def Serial_Monitor(senser_array,data_array,out_array):
 #def writer(senser_queue,data_queue):
     ser=serial.Serial(SER_COM, 115200,timeout=0.5)
     state=0
@@ -41,14 +42,13 @@ def Serial_Monitor(senser_queue,data_queue,out_queue):
     frame=[]
     data_cnt=0
     while(1):
-	if(out_queue.empty()==False):
-	    #cmd=safe_get(out_queue)#out_queue.get()
-	    try:        
-		cmd=out_queue.get(False) 
-		#print(cmd)
-	    except:         
-		pass            
-	    Send_cmd(ser,cmd)        
+	cmd=out_array[:]
+	cmd=map(chr,cmd)
+	#print cmd
+	if(cmd[0]!='\x00'):
+	    #print cmd
+	    Send_cmd(ser,cmd)
+	    out_array[:]=[0 for i in range(30)]
 	if(ser.inWaiting()>0):
 	    data=ser.read()
 	    if(state==0 and ord(data)==HEAD_RECE[0]):
@@ -82,7 +82,18 @@ def Serial_Monitor(senser_queue,data_queue,out_queue):
 		    pass
 		elif(frame[2]==0xF1):
 		    #print frame
-		    try:
+		    #print time.time()-last_time
+		    #print ser.inWaiting()
+		    #last_time=time.time()
+		    senser_array[:]=frame[4:16]
+		    data_array[:]=frame[10:-1]
+		    '''for i in range(4,16):
+			senser_array[i-4]=frame[i]
+		    for i in range(10,len(frame)):
+			data_array[i-10]=frame[i]'''
+		    #print senser_array[:]
+		    #print data_array[:]
+		    '''try:
 			if(senser_queue.empty()==False):
 			    senser_queue.get(False)	
 			senser_queue.put(frame[4:16],False)
@@ -95,7 +106,7 @@ def Serial_Monitor(senser_queue,data_queue,out_queue):
 			data_queue.put(frame[10:-1],False)
 			
 		    except:
-			print("data_queue.put error")
+			print("data_queue.put error")'''
                  
 		else:
 		    pass  
